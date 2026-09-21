@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using NAudio.CoreAudioApi;
 using WinAudioBooster.Audio;
 using WinAudioBooster.Models;
 using WinAudioBooster.Services;
@@ -24,6 +25,11 @@ namespace WinAudioBooster
         private readonly PresetManager _presetManager = new();
         private readonly SettingsManager _settingsManager = new();
         private readonly DispatcherTimer _vuTimer = new();
+        private readonly AppDetector _appDetector = new();
+        private readonly VolumeManager _volumeManager = new();
+        
+        private MiniMixerWindow? _miniMixerWindow;
+        public AudioEngine AudioEngineInstance => _audioEngine;
 
         public MainWindow()
         {
@@ -33,9 +39,39 @@ namespace WinAudioBooster
             LoadSavedSettingsAndPresets();
 
             InitializeAudio();
+            InitializeAppDetector();
             InitializeVuTimer();
 
             _isInitializing = false;
+        }
+        
+        private void InitializeAppDetector()
+        {
+            _appDetector.PresetChangeRequested += (s, presetName) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    RefreshPresetsList(presetName);
+                });
+            };
+        }
+        
+        protected override void OnStateChanged(EventArgs e)
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                Hide();
+                _miniMixerWindow ??= new MiniMixerWindow(this);
+                _miniMixerWindow.SyncWithMainWindow();
+                _miniMixerWindow.Show();
+            }
+            base.OnStateChanged(e);
+        }
+        
+        public void TriggerBoosterToggleFromMini()
+        {
+            RestartAudioEngineIfEnabled();
+            SaveCurrentSettings();
         }
 
         private async void SetCableDefaultBtn_OnClick(object sender, RoutedEventArgs e)
@@ -115,7 +151,9 @@ namespace WinAudioBooster
             SelectCurrentLanguageInComboBox(settings.Language);
             RefreshPresetsList(settings.SelectedPresetName);
 
-            GainSlider.Value = settings.GainDb;
+            // Якщо збережене значення застаріле (<= 20), встановлюємо 100% за замовчуванням
+            GainSlider.Value = settings.GainDb > 20 ? settings.GainDb : 100;
+
             CompThresholdSlider.Value = settings.CompressorThresholdDb;
             CompRatioSlider.Value = settings.CompressorRatio;
             LimiterCeilingSlider.Value = settings.LimiterCeilingDb;
@@ -132,6 +170,26 @@ namespace WinAudioBooster
                 Dispatcher.Invoke(() =>
                 {
                     MessageBox.Show(err, "WinAudioBooster Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                });
+            };
+
+            // Двостороння синхронізація: якщо користувач рухає ползунок у треї Windows
+            _volumeManager.VolumeChangedExternally += (s, winPercent) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (GainSlider.Value <= 100.0)
+                    {
+                        _isApplyingPreset = true;
+                        GainSlider.Value = winPercent;
+                        GainValueText.Text = $"{winPercent:F0}%";
+                        _isApplyingPreset = false;
+
+                        if (_miniMixerWindow != null)
+                        {
+                            _miniMixerWindow.SyncWithMainWindow();
+                        }
+                    }
                 });
             };
 
@@ -273,12 +331,28 @@ namespace WinAudioBooster
 
         private void SyncDspParameters()
         {
-            if (_audioEngine.Dsp == null) return;
+            var captureCableDevice = _deviceManager.FindCableDevice();
+            var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
 
-            _audioEngine.Dsp.GainDb = (float)GainSlider.Value;
-            _audioEngine.Dsp.CompressorThresholdDb = (float)CompThresholdSlider.Value;
-            _audioEngine.Dsp.CompressorRatio = (float)CompRatioSlider.Value;
-            _audioEngine.Dsp.LimiterCeilingDb = (float)LimiterCeilingSlider.Value;
+            MMDevice? deviceToControl = EnableBoosterCheckBox.IsChecked == true 
+                ? captureCableDevice 
+                : selectedOutputInfo?.Device;
+
+            _volumeManager.BindDevice(deviceToControl);
+
+            float calculatedGainDb = _volumeManager.SetVolumeAndCalculateGainDb(
+                GainSlider.Value, 
+                deviceToControl, 
+                selectedOutputInfo?.Device
+            );
+
+            if (_audioEngine.Dsp != null)
+            {
+                _audioEngine.Dsp.GainDb = calculatedGainDb;
+                _audioEngine.Dsp.CompressorThresholdDb = (float)CompThresholdSlider.Value;
+                _audioEngine.Dsp.CompressorRatio = (float)CompRatioSlider.Value;
+                _audioEngine.Dsp.LimiterCeilingDb = (float)LimiterCeilingSlider.Value;
+            }
         }
 
         private void RefreshPresetsList(string? selectPresetName = null)
@@ -309,7 +383,7 @@ namespace WinAudioBooster
 
             _isApplyingPreset = true;
 
-            GainSlider.Value = selectedPreset.GainDb;
+            GainSlider.Value = selectedPreset.GainDb > 0 ? selectedPreset.GainDb : 100;
             CompThresholdSlider.Value = selectedPreset.CompressorThresholdDb;
             CompRatioSlider.Value = selectedPreset.CompressorRatio;
             LimiterCeilingSlider.Value = selectedPreset.LimiterCeilingDb;
@@ -340,10 +414,10 @@ namespace WinAudioBooster
             var newPreset = new Preset
             {
                 Name = presetName.Trim(),
-                GainDb = GainSlider.Value,
-                CompressorThresholdDb = CompThresholdSlider.Value,
-                CompressorRatio = CompRatioSlider.Value,
-                LimiterCeilingDb = LimiterCeilingSlider.Value
+                GainDb = (float)GainSlider.Value,
+                CompressorThresholdDb = (float)CompThresholdSlider.Value,
+                CompressorRatio = (float)CompRatioSlider.Value,
+                LimiterCeilingDb = (float)LimiterCeilingSlider.Value
             };
 
             _presetManager.SaveCustomPreset(newPreset);
@@ -355,10 +429,10 @@ namespace WinAudioBooster
         {
             if (PresetsComboBox.SelectedItem is Preset current && !current.IsBuiltIn)
             {
-                current.GainDb = GainSlider.Value;
-                current.CompressorThresholdDb = CompThresholdSlider.Value;
-                current.CompressorRatio = CompRatioSlider.Value;
-                current.LimiterCeilingDb = LimiterCeilingSlider.Value;
+                current.GainDb = (float)GainSlider.Value;
+                current.CompressorThresholdDb = (float)CompThresholdSlider.Value;
+                current.CompressorRatio = (float)CompRatioSlider.Value;
+                current.LimiterCeilingDb = (float)LimiterCeilingSlider.Value;
 
                 _presetManager.SaveCustomPreset(current);
                 SaveCurrentSettings();
@@ -377,8 +451,33 @@ namespace WinAudioBooster
 
         private void GainSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (GainValueText != null) GainValueText.Text = $"+{e.NewValue:F1} dB";
-            if (_audioEngine?.Dsp != null) _audioEngine.Dsp.GainDb = (float)e.NewValue;
+            if (GainValueText != null) 
+            {
+                GainValueText.Text = $"{e.NewValue:F0}%";
+            }
+
+            var captureCableDevice = _deviceManager.FindCableDevice();
+            var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
+
+            MMDevice? deviceToControl = EnableBoosterCheckBox.IsChecked == true 
+                ? captureCableDevice 
+                : selectedOutputInfo?.Device;
+
+            float calculatedGainDb = _volumeManager.SetVolumeAndCalculateGainDb(
+                e.NewValue, 
+                deviceToControl, 
+                selectedOutputInfo?.Device
+            );
+
+            if (_audioEngine?.Dsp != null) 
+            {
+                _audioEngine.Dsp.GainDb = calculatedGainDb;
+            }
+
+            if (_miniMixerWindow != null)
+            {
+                _miniMixerWindow.SyncWithMainWindow();
+            }
 
             if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
         }
@@ -425,7 +524,7 @@ namespace WinAudioBooster
 
         private void UpdateAllUiTexts()
         {
-            GainValueText.Text = $"+{GainSlider.Value:F1} dB";
+            GainValueText.Text = $"{GainSlider.Value:F0}%";
             CompThresholdText.Text = $"{CompThresholdSlider.Value:F0} dB";
             CompRatioText.Text = $"{CompRatioSlider.Value:F1}:1";
             LimiterCeilingText.Text = $"{LimiterCeilingSlider.Value:F1} dB";
@@ -466,6 +565,8 @@ namespace WinAudioBooster
         {
             SaveCurrentSettings();
             _vuTimer.Stop();
+            _volumeManager.Dispose();
+            _appDetector.Dispose();
             _audioEngine.Dispose();
             base.OnClosed(e);
         }

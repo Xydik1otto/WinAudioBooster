@@ -5,27 +5,19 @@ using System.Windows.Media;
 
 namespace WinAudioBooster.Converters
 {
-    /// <summary>
-    /// Змінює колір відображення Gain залежно від рівня підсилення:
-    /// 0–6 dB   → зелений
-    /// 6–12 dB  → помаранчевий
-    /// 12–20 dB → червоний
-    /// </summary>
     public class GainToColorConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is double gain)
+            if (value is double percent)
             {
-                if (gain <= 6)
-                {
-                    return new SolidColorBrush(Colors.ForestGreen);
-                }
-                if (gain <= 12)
-                {
-                    return new SolidColorBrush(Colors.DarkOrange);
-                }
-                return new SolidColorBrush(Colors.Crimson);
+                if (percent <= 100.0)
+                    return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2ECC71")); // Зелений (0-100%)
+                
+                if (percent <= 200.0)
+                    return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E67E22")); // Помаранчевий (101-200%)
+
+                return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E74C3C")); // Червоний (>200%)
             }
 
             return new SolidColorBrush(Colors.ForestGreen);

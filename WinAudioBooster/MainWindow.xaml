@@ -128,14 +128,14 @@
                     </Grid>
                 </GroupBox>
 
-                <!-- Gain -->
-                <GroupBox Header="Gain" Padding="10" Margin="0,0,0,12">
+                <!-- Gain / Volume (%) -->
+                <GroupBox Header="Загальна гучність (Volume)" Padding="10" Margin="0,0,0,12">
                     <StackPanel>
                         <Grid>
-                            <TextBlock Text="{DynamicResource Gain_Label}" FontSize="13" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="GainValueText" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToColorConverter}}"/>
+                            <TextBlock Text="Гучність" FontSize="13" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="GainValueText" Text="100%" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToColorConverter}}"/>
                         </Grid>
-                        <Slider x:Name="GainSlider" Minimum="0" Maximum="20" Value="3" TickFrequency="0.5" IsSnapToTickEnabled="True" ValueChanged="GainSlider_OnValueChanged" Foreground="{Binding Value, RelativeSource={RelativeSource Self}, Converter={StaticResource GainToColorConverter}}" Margin="0,8,0,0"/>
+                        <Slider x:Name="GainSlider" Minimum="0" Maximum="300" Value="100" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="GainSlider_OnValueChanged" Foreground="{Binding Value, RelativeSource={RelativeSource Self}, Converter={StaticResource GainToColorConverter}}" Margin="0,8,0,0"/>
                     </StackPanel>
                 </GroupBox>
 
