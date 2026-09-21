@@ -4,8 +4,8 @@
         xmlns:local="clr-namespace:WinAudioBooster"
         xmlns:converters="clr-namespace:WinAudioBooster.Converters"
         Title="{DynamicResource MainWindow_Title}"
-        Height="620"
-        Width="560"
+        Height="840"
+        Width="600"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
@@ -25,7 +25,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Заголовок + Кнопка завантаження VB-Cable -->
+            <!-- Header + Cable Button -->
             <Grid Grid.Row="0" Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -35,55 +35,149 @@
                 <Button Grid.Column="1" x:Name="InstallCableButton" Content="{DynamicResource InstallCable_Btn}" Click="InstallCableButton_OnClick" Padding="10,4" Background="#E1F5FE" BorderBrush="#29B6F6"/>
             </Grid>
 
-            <!-- Блок Gain -->
-            <GroupBox Grid.Row="1" Header="Gain" Padding="10" Margin="0,0,0,12">
-                <StackPanel>
-                    <Grid>
-                        <TextBlock Text="{DynamicResource Gain_Label}" FontSize="13" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="GainValueText" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToColorConverter}}"/>
-                    </Grid>
-                    <Slider x:Name="GainSlider" Minimum="0" Maximum="20" Value="3" TickFrequency="0.5" IsSnapToTickEnabled="True" ValueChanged="GainSlider_OnValueChanged" Foreground="{Binding Value, RelativeSource={RelativeSource Self}, Converter={StaticResource GainToColorConverter}}" Margin="0,8,0,0"/>
-                </StackPanel>
+            <!-- Quick Routing Toggle Group -->
+            <GroupBox Grid.Row="1" Header="{DynamicResource Routing_Group}" Padding="8" Margin="0,0,0,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" x:Name="SetCableDefaultBtn" Content="{DynamicResource SetCableDefault_Btn}" Click="SetCableDefaultBtn_OnClick" Margin="0,0,4,0" Padding="6"/>
+                    <Button Grid.Column="1" x:Name="SetSpeakersDefaultBtn" Content="{DynamicResource SetSpeakersDefault_Btn}" Click="SetSpeakersDefaultBtn_OnClick" Margin="4,0,0,0" Padding="6"/>
+                </Grid>
             </GroupBox>
 
-            <!-- Попередження Gain -->
-            <Border Grid.Row="2" Margin="0,0,0,12" Padding="10" Background="#FFFEEFB3" BorderBrush="#FFFFC107" BorderThickness="1" CornerRadius="4" Visibility="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToWarningVisibilityConverter}}">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="⚠️ " FontSize="14"/>
-                    <TextBlock Text="{DynamicResource HighGainWarning_Text}" TextWrapping="Wrap" FontSize="12" Foreground="#FF856404"/>
-                </StackPanel>
+            <!-- Booster Toggle -->
+            <Border Grid.Row="2" Background="#F8F9FA" BorderBrush="#DEE2E6" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox Grid.Column="0" 
+                              x:Name="EnableBoosterCheckBox"
+                              Content="{DynamicResource EnableBooster_Label}"
+                              FontSize="15"
+                              FontWeight="Bold"
+                              VerticalAlignment="Center"
+                              Click="EnableBoosterCheckBox_OnClick"/>
+
+                    <TextBlock Grid.Column="1" 
+                               x:Name="BoosterStateText"
+                               Text="{DynamicResource BoosterState_Off}"
+                               FontSize="13"
+                               FontWeight="Bold"
+                               Foreground="Gray"
+                               VerticalAlignment="Center"/>
+                </Grid>
             </Border>
 
-            <!-- Блок Компресора -->
-            <GroupBox Grid.Row="3" Header="{DynamicResource Compressor_Group}" Padding="10" Margin="0,0,0,12">
-                <StackPanel>
-                    <Grid Margin="0,0,0,4">
-                        <TextBlock Text="{DynamicResource Threshold_Label}" FontSize="12"/>
-                        <TextBlock x:Name="CompThresholdText" HorizontalAlignment="Right" FontSize="12" FontWeight="Bold"/>
-                    </Grid>
-                    <Slider x:Name="CompThresholdSlider" Minimum="-60" Maximum="0" Value="-20" ValueChanged="CompThresholdSlider_OnValueChanged" Margin="0,0,0,8"/>
+            <!-- DSP Settings Panel -->
+            <StackPanel Grid.Row="3" x:Name="DspSettingsPanel" IsEnabled="False">
 
-                    <Grid Margin="0,0,0,4">
-                        <TextBlock Text="{DynamicResource Ratio_Label}" FontSize="12"/>
-                        <TextBlock x:Name="CompRatioText" HorizontalAlignment="Right" FontSize="12" FontWeight="Bold"/>
-                    </Grid>
-                    <Slider x:Name="CompRatioSlider" Minimum="1" Maximum="20" Value="3" ValueChanged="CompRatioSlider_OnValueChanged"/>
-                </StackPanel>
-            </GroupBox>
+                <!-- Physical Output Device -->
+                <GroupBox Header="{DynamicResource OutputDevice_Group}" Padding="10" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-            <!-- Блок Лімітера -->
-            <GroupBox Grid.Row="4" Header="{DynamicResource Limiter_Group}" Padding="10" Margin="0,0,0,12">
-                <StackPanel>
-                    <Grid Margin="0,0,0,4">
-                        <TextBlock Text="{DynamicResource Ceiling_Label}" FontSize="12"/>
-                        <TextBlock x:Name="LimiterCeilingText" HorizontalAlignment="Right" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Grid.Column="0" Text="{DynamicResource OutputDevice_Label}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="12"/>
+                        <ComboBox Grid.Column="1" x:Name="OutputDeviceComboBox" SelectionChanged="OutputDeviceComboBox_OnSelectionChanged" Height="26"/>
                     </Grid>
-                    <Slider x:Name="LimiterCeilingSlider" Minimum="-3" Maximum="0" Value="-0.3" TickFrequency="0.1" ValueChanged="LimiterCeilingSlider_OnValueChanged"/>
-                </StackPanel>
-            </GroupBox>
+                </GroupBox>
 
-            <!-- VU Метри -->
-            <GroupBox Grid.Row="5" Header="{DynamicResource VuMeters_Group}" Padding="10" Margin="0,0,0,12">
+                <!-- Presets -->
+                <GroupBox Header="{DynamicResource Presets_Group}" Padding="10" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ComboBox Grid.Column="0" 
+                                  x:Name="PresetsComboBox" 
+                                  SelectionChanged="PresetsComboBox_OnSelectionChanged"
+                                  Height="28" 
+                                  Margin="0,0,8,0"/>
+
+                        <Button Grid.Column="1" 
+                                x:Name="SaveAsPresetButton" 
+                                Content="{DynamicResource Preset_SaveAs}" 
+                                Click="SaveAsPresetButton_OnClick"
+                                Padding="8,4" 
+                                Margin="0,0,4,0"/>
+
+                        <Button Grid.Column="2" 
+                                x:Name="UpdatePresetButton" 
+                                Content="{DynamicResource Preset_Update}" 
+                                Click="UpdatePresetButton_OnClick"
+                                Padding="8,4" 
+                                Margin="0,0,4,0"/>
+
+                        <Button Grid.Column="3" 
+                                x:Name="DeletePresetButton" 
+                                Content="{DynamicResource Preset_Delete}" 
+                                Click="DeletePresetButton_OnClick"
+                                Padding="8,4" 
+                                Foreground="Crimson"/>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Gain -->
+                <GroupBox Header="Gain" Padding="10" Margin="0,0,0,12">
+                    <StackPanel>
+                        <Grid>
+                            <TextBlock Text="{DynamicResource Gain_Label}" FontSize="13" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="GainValueText" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToColorConverter}}"/>
+                        </Grid>
+                        <Slider x:Name="GainSlider" Minimum="0" Maximum="20" Value="3" TickFrequency="0.5" IsSnapToTickEnabled="True" ValueChanged="GainSlider_OnValueChanged" Foreground="{Binding Value, RelativeSource={RelativeSource Self}, Converter={StaticResource GainToColorConverter}}" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Gain Warning -->
+                <Border Margin="0,0,0,12" Padding="10" Background="#FFFEEFB3" BorderBrush="#FFFFC107" BorderThickness="1" CornerRadius="4" Visibility="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToWarningVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⚠️ " FontSize="14"/>
+                        <TextBlock Text="{DynamicResource HighGainWarning_Text}" TextWrapping="Wrap" FontSize="12" Foreground="#FF856404"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Compressor -->
+                <GroupBox Header="{DynamicResource Compressor_Group}" Padding="10" Margin="0,0,0,12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,4">
+                            <TextBlock Text="{DynamicResource Threshold_Label}" FontSize="12"/>
+                            <TextBlock x:Name="CompThresholdText" HorizontalAlignment="Right" FontSize="12" FontWeight="Bold"/>
+                        </Grid>
+                        <Slider x:Name="CompThresholdSlider" Minimum="-60" Maximum="0" Value="-20" ValueChanged="CompThresholdSlider_OnValueChanged" Margin="0,0,0,8"/>
+
+                        <Grid Margin="0,0,0,4">
+                            <TextBlock Text="{DynamicResource Ratio_Label}" FontSize="12"/>
+                            <TextBlock x:Name="CompRatioText" HorizontalAlignment="Right" FontSize="12" FontWeight="Bold"/>
+                        </Grid>
+                        <Slider x:Name="CompRatioSlider" Minimum="1" Maximum="20" Value="3" ValueChanged="CompRatioSlider_OnValueChanged"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Limiter -->
+                <GroupBox Header="{DynamicResource Limiter_Group}" Padding="10" Margin="0,0,0,12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,4">
+                            <TextBlock Text="{DynamicResource Ceiling_Label}" FontSize="12"/>
+                            <TextBlock x:Name="LimiterCeilingText" HorizontalAlignment="Right" FontSize="12" FontWeight="Bold"/>
+                        </Grid>
+                        <Slider x:Name="LimiterCeilingSlider" Minimum="-3" Maximum="0" Value="-0.3" TickFrequency="0.1" ValueChanged="LimiterCeilingSlider_OnValueChanged"/>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+
+            <!-- VU Meters -->
+            <GroupBox Grid.Row="4" Header="{DynamicResource VuMeters_Group}" Padding="10" Margin="0,0,0,12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -102,8 +196,8 @@
                 </Grid>
             </GroupBox>
 
-            <!-- Перемикання мови -->
-            <Grid Grid.Row="6" VerticalAlignment="Bottom" Margin="0,8,0,0">
+            <!-- Language Switch -->
+            <Grid Grid.Row="5" VerticalAlignment="Bottom" Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>

@@ -8,6 +8,12 @@
         <UseWPF>true</UseWPF>
         <RootNamespace>WinAudioBooster</RootNamespace>
         <AssemblyName>WinAudioBooster</AssemblyName>
+
+        <!-- Автономний виконний файл (не вимагає встановленого .NET 8 на ПК) -->
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <SelfContained>true</SelfContained>
+        <PublishSingleFile>true</PublishSingleFile>
+        <IncludeNativeLibrariesForSelfContained>true</IncludeNativeLibrariesForSelfContained>
     </PropertyGroup>
 
     <ItemGroup>

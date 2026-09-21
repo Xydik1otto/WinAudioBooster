@@ -1,68 +1,77 @@
 using System;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace WinAudioBooster.Audio
 {
-    /// <summary>
-    /// Аудіо-рушій, що об'єднує WasapiLoopbackCapture, DspProcessor та WasapiOut.
-    /// </summary>
     public class AudioEngine : IDisposable
     {
         private WasapiLoopbackCapture? _capture;
         private WasapiOut? _output;
         private BufferedWaveProvider? _waveBuffer;
         private DspProcessor? _dspProcessor;
+        private MediaFoundationResampler? _resampler;
 
         public DspProcessor? Dsp => _dspProcessor;
         public bool IsRunning { get; private set; }
 
-        /// <summary>
-        /// Подія, що викликається при виникненні помилки аудіопотоку.
-        /// </summary>
         public event EventHandler<string>? ErrorOccurred;
 
-        /// <summary>
-        /// Ініціалізація та запуск аудіопотоку.
-        /// </summary>
-        /// <param name="captureDevice">Пристрій, з якого захоплюється звук (якщо null — використовується дефолтний)</param>
-        /// <param name="outputDevice">Пристрій, куди виводиться оброблений звук (наприклад, VB-Cable)</param>
         public void Start(MMDevice? captureDevice, MMDevice? outputDevice)
         {
-            if (IsRunning) Stop();
+            Stop();
+
+            if (outputDevice == null) return;
 
             try
             {
-                // 1. Ініціалізація захоплення (Loopback Capture)
+                // 1. Ініціалізація захоплення
                 _capture = captureDevice != null 
                     ? new WasapiLoopbackCapture(captureDevice) 
                     : new WasapiLoopbackCapture();
 
-                // 2. Створення проміжного буфера
+                // 2. Створення стабільного буфера з ReadFully = true (Усуває тріск)
                 _waveBuffer = new BufferedWaveProvider(_capture.WaveFormat)
                 {
-                    DiscardOnBufferOverflow = true, // Забігає накопиченню затримки (latency)
-                    BufferDuration = TimeSpan.FromMilliseconds(500)
+                    DiscardOnBufferOverflow = true,
+                    BufferDuration = TimeSpan.FromSeconds(2),
+                    ReadFully = true
                 };
 
-                // 3. Підключення обробника події надходження аудіоданих
                 _capture.DataAvailable += (s, e) =>
                 {
-                    _waveBuffer.AddSamples(e.Buffer, 0, e.BytesRecorded);
+                    if (_waveBuffer != null && e.BytesRecorded > 0)
+                    {
+                        _waveBuffer.AddSamples(e.Buffer, 0, e.BytesRecorded);
+                    }
                 };
 
-                // 4. Обертаємо буфер у SampleProvider для DSP
-                var sampleProvider = _waveBuffer.ToSampleProvider();
+                // 3. Конвертація у SampleProvider
+                ISampleProvider sampleProvider = _waveBuffer.ToSampleProvider();
+
+                // 4. Ініціалізація DSP
                 _dspProcessor = new DspProcessor(sampleProvider);
 
-                // 5. Ініціалізація виводу (WasapiOut)
-                _output = outputDevice != null
-                    ? new WasapiOut(outputDevice, AudioClientShareMode.Shared, false, 20)
-                    : new WasapiOut(AudioClientShareMode.Shared, 20);
+                // 5. Отримання нативної частоти вихідного пристрою та ресемплінг за потреби
+                var outputMixFormat = outputDevice.AudioClient.MixFormat;
+                IWaveProvider finalWaveProvider = _dspProcessor.ToWaveProvider();
 
-                _output.Init(_dspProcessor);
+                if (_dspProcessor.WaveFormat.SampleRate != outputMixFormat.SampleRate ||
+                    _dspProcessor.WaveFormat.Channels != outputMixFormat.Channels)
+                {
+                    var targetFormat = new WaveFormat(outputMixFormat.SampleRate, 16, outputMixFormat.Channels);
+                    _resampler = new MediaFoundationResampler(finalWaveProvider, targetFormat)
+                    {
+                        ResamplerQuality = 60 // Виправлена назва властивості у NAudio
+                    };
+                    finalWaveProvider = _resampler;
+                }
 
-                // 6. Старт запеленгованих потоків
+                // 6. Ініціалізація виводу з затримкою 80 мс для стабільності
+                _output = new WasapiOut(outputDevice, AudioClientShareMode.Shared, false, 80);
+                _output.Init(finalWaveProvider);
+
                 _output.Play();
                 _capture.StartRecording();
 
@@ -71,13 +80,10 @@ namespace WinAudioBooster.Audio
             catch (Exception ex)
             {
                 Stop();
-                ErrorOccurred?.Invoke(this, $"Помилка запуску аудіопотоку: {ex.Message}");
+                ErrorOccurred?.Invoke(this, $"Помилка аудіопотоку: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Зупинка аудіо-рушія та звільнення ресурсів.
-        /// </summary>
         public void Stop()
         {
             IsRunning = false;
@@ -94,6 +100,12 @@ namespace WinAudioBooster.Audio
                 try { _output.Stop(); } catch { }
                 _output.Dispose();
                 _output = null;
+            }
+
+            if (_resampler != null)
+            {
+                _resampler.Dispose();
+                _resampler = null;
             }
 
             _waveBuffer = null;

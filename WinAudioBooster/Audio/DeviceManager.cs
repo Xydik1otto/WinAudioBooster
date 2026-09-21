@@ -1,12 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Win32;
 using NAudio.CoreAudioApi;
 
 namespace WinAudioBooster.Audio
 {
-    /// <summary>
-    /// Опис аудіопристрою для відображення в UI.
-    /// </summary>
     public class AudioDeviceInfo
     {
         public string Id { get; set; } = string.Empty;
@@ -16,35 +15,58 @@ namespace WinAudioBooster.Audio
         public override string ToString() => Name;
     }
 
-    /// <summary>
-    /// Менеджер для пошуку та вибору аудіопристроїв Windows.
-    /// </summary>
     public class DeviceManager
     {
-        private readonly MMDeviceEnumerator _enumerator = new();
-
-        /// <summary>
-        /// Отримати список усіх активних пристроїв відтворення.
-        /// </summary>
-        public List<AudioDeviceInfo> GetOutputDevices()
-        {
-            var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-            return devices.Select(d => new AudioDeviceInfo
-            {
-                Id = d.ID,
-                Name = d.FriendlyName,
-                Device = d
-            }).ToList();
-        }
-
-        /// <summary>
-        /// Отримати пристрій відтворення за замовчуванням (Loopback source).
-        /// </summary>
-        public MMDevice? GetDefaultRenderDevice()
+        public bool IsCableInstalled()
         {
             try
             {
-                return _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                using var mediaClassKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}");
+                if (mediaClassKey != null)
+                {
+                    foreach (var subkeyName in mediaClassKey.GetSubKeyNames())
+                    {
+                        using var subkey = mediaClassKey.OpenSubKey(subkeyName);
+                        if (subkey != null)
+                        {
+                            string driverDesc = subkey.GetValue("DriverDesc")?.ToString() ?? "";
+                            string providerName = subkey.GetValue("ProviderName")?.ToString() ?? "";
+
+                            if (driverDesc.Contains("VB-Audio", StringComparison.OrdinalIgnoreCase) ||
+                                driverDesc.Contains("CABLE", StringComparison.OrdinalIgnoreCase) ||
+                                providerName.Contains("VB-Audio", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                var allDevices = enumerator.EnumerateAudioEndPoints(DataFlow.All, DeviceState.All);
+                return allDevices.Any(IsCableMatch);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Пошук віртуального кабелю CABLE Input (звідки програма захоплює системний звук).
+        /// </summary>
+        public MMDevice? FindCableDevice()
+        {
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                var outputDevices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+
+                return outputDevices.FirstOrDefault(IsCableMatch);
             }
             catch
             {
@@ -53,13 +75,54 @@ namespace WinAudioBooster.Audio
         }
 
         /// <summary>
-        /// Автоматичний пошук віртуального кабелю (будь-якого пристрою зі словом "CABLE" у назві).
+        /// Отримує поточний системний пристрій відтворення за замовчуванням у Windows.
         /// </summary>
-        public MMDevice? FindCableDevice()
+        public MMDevice? GetDefaultRenderDevice()
         {
-            var outputDevices = _enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-            return outputDevices.FirstOrDefault(d => 
-                d.FriendlyName.ToUpperInvariant().Contains("CABLE"));
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                return enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Отримує список тільки реальних ФІЗИЧНИХ пристроїв відтворення (динаміки, навушники, HDMI).
+        /// </summary>
+        public List<AudioDeviceInfo> GetPhysicalOutputDevices()
+        {
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                var outputDevices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+
+                return outputDevices
+                    .Where(d => !IsCableMatch(d))
+                    .Select(d => new AudioDeviceInfo
+                    {
+                        Id = d.ID,
+                        Name = d.FriendlyName,
+                        Device = d
+                    })
+                    .ToList();
+            }
+            catch
+            {
+                return new List<AudioDeviceInfo>();
+            }
+        }
+
+        private static bool IsCableMatch(MMDevice device)
+        {
+            if (device == null || string.IsNullOrEmpty(device.FriendlyName)) return false;
+            string name = device.FriendlyName;
+            return name.Contains("CABLE", StringComparison.OrdinalIgnoreCase) ||
+                   name.Contains("VB-Audio", StringComparison.OrdinalIgnoreCase) ||
+                   name.Contains("Virtual Cable", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

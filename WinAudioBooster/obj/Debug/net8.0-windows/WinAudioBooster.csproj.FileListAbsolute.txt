@@ -30,3 +30,4 @@ G:\Projects\WinAudioBooster\WinAudioBooster\bin\Debug\net8.0-windows\NAudio.WinF
 G:\Projects\WinAudioBooster\WinAudioBooster\bin\Debug\net8.0-windows\NAudio.WinMM.dll
 G:\Projects\WinAudioBooster\WinAudioBooster\obj\Debug\net8.0-windows\WinAudioBooster.csproj.AssemblyReference.cache
 G:\Projects\WinAudioBooster\WinAudioBooster\obj\Debug\net8.0-windows\WinAudio.C93C4F42.Up2Date
+G:\Projects\WinAudioBooster\WinAudioBooster\bin\Debug\net8.0-windows\VBCABLE_Driver_Pack45.zip

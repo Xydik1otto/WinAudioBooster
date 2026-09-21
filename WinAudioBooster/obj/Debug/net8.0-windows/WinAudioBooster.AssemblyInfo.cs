@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WinAudioBooster")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c2c0a8cf0cd5807ac47d47fab74e39cf0314332c")]
 [assembly: System.Reflection.AssemblyProductAttribute("WinAudioBooster")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WinAudioBooster")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

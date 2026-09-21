@@ -2,32 +2,42 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
-    <!-- General -->
     <sys:String x:Key="AppTitle">WinAudioBooster</sys:String>
-
-    <!-- MainWindow -->
     <sys:String x:Key="MainWindow_Title">WinAudioBooster – Settings</sys:String>
+    <sys:String x:Key="EnableBooster_Label">Enable Booster</sys:String>
+    <sys:String x:Key="BoosterState_On">ACTIVE</sys:String>
+    <sys:String x:Key="BoosterState_Off">OFF</sys:String>
+
+    <!-- Routing -->
+    <sys:String x:Key="Routing_Group">Windows Audio Routing</sys:String>
+    <sys:String x:Key="SetCableDefault_Btn">Set CABLE as Default (For Booster)</sys:String>
+    <sys:String x:Key="SetSpeakersDefault_Btn">Restore Speakers (Direct Sound)</sys:String>
+
+    <sys:String x:Key="OutputDevice_Group">Physical Speakers / Headphones</sys:String>
+    <sys:String x:Key="OutputDevice_Label">Output sound to:</sys:String>
+
+    <sys:String x:Key="Presets_Group">Presets</sys:String>
+    <sys:String x:Key="Preset_SaveAs">Save New</sys:String>
+    <sys:String x:Key="Preset_Update">Update</sys:String>
+    <sys:String x:Key="Preset_Delete">Delete</sys:String>
+
     <sys:String x:Key="Gain_Label">Gain, dB</sys:String>
     <sys:String x:Key="HighGainWarning_Text">High gain levels may damage speakers/headphones and your hearing.</sys:String>
     <sys:String x:Key="Language_Label">Language / Мова</sys:String>
     <sys:String x:Key="Language_Ukrainian">Українська</sys:String>
     <sys:String x:Key="Language_English">English</sys:String>
 
-    <!-- DSP Settings -->
     <sys:String x:Key="Compressor_Group">Compressor</sys:String>
     <sys:String x:Key="Threshold_Label">Threshold, dB</sys:String>
     <sys:String x:Key="Ratio_Label">Ratio</sys:String>
-    <sys:String x:Key="Attack_Label">Attack, ms</sys:String>
-    <sys:String x:Key="Release_Label">Release, ms</sys:String>
 
     <sys:String x:Key="Limiter_Group">Limiter</sys:String>
     <sys:String x:Key="Ceiling_Label">Ceiling, dB</sys:String>
 
-    <!-- VU Meters -->
     <sys:String x:Key="VuMeters_Group">Signal Levels (VU)</sys:String>
     <sys:String x:Key="Vu_Input">Input:</sys:String>
     <sys:String x:Key="Vu_Output">Output:</sys:String>
 
-    <!-- Install Cable Button -->
     <sys:String x:Key="InstallCable_Btn">Install VB-Cable</sys:String>
+    <sys:String x:Key="CableInstalled_Btn">Driver Installed</sys:String>
 </ResourceDictionary>

@@ -2,32 +2,42 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
-    <!-- Загальні -->
     <sys:String x:Key="AppTitle">WinAudioBooster</sys:String>
-
-    <!-- MainWindow -->
     <sys:String x:Key="MainWindow_Title">WinAudioBooster – Налаштування</sys:String>
+    <sys:String x:Key="EnableBooster_Label">Увімкнути бустер</sys:String>
+    <sys:String x:Key="BoosterState_On">УВІМКНЕНО</sys:String>
+    <sys:String x:Key="BoosterState_Off">ВИМКНЕНО</sys:String>
+
+    <!-- Перемикання дефолтного пристрою -->
+    <sys:String x:Key="Routing_Group">Маршрутизація звуку Windows</sys:String>
+    <sys:String x:Key="SetCableDefault_Btn">Зробити CABLE дефолтним (Для бустера)</sys:String>
+    <sys:String x:Key="SetSpeakersDefault_Btn">Повернути динаміки (Прямий звук)</sys:String>
+
+    <sys:String x:Key="OutputDevice_Group">Фізичні динаміки / Навушники</sys:String>
+    <sys:String x:Key="OutputDevice_Label">Виводити звук на:</sys:String>
+
+    <sys:String x:Key="Presets_Group">Пресети</sys:String>
+    <sys:String x:Key="Preset_SaveAs">Зберегти новий</sys:String>
+    <sys:String x:Key="Preset_Update">Оновити</sys:String>
+    <sys:String x:Key="Preset_Delete">Видалити</sys:String>
+
     <sys:String x:Key="Gain_Label">Підсилення (Gain), dB</sys:String>
     <sys:String x:Key="HighGainWarning_Text">Високий рівень підсилення може пошкодити динаміки/навушники та слух.</sys:String>
     <sys:String x:Key="Language_Label">Мова / Language</sys:String>
     <sys:String x:Key="Language_Ukrainian">Українська</sys:String>
     <sys:String x:Key="Language_English">English</sys:String>
 
-    <!-- DSP Налаштування -->
     <sys:String x:Key="Compressor_Group">Компресор</sys:String>
     <sys:String x:Key="Threshold_Label">Поріг (Threshold), dB</sys:String>
     <sys:String x:Key="Ratio_Label">Співвідношення (Ratio)</sys:String>
-    <sys:String x:Key="Attack_Label">Атака (Attack), мс</sys:String>
-    <sys:String x:Key="Release_Label">Відновлення (Release), мс</sys:String>
 
     <sys:String x:Key="Limiter_Group">Лімітер</sys:String>
     <sys:String x:Key="Ceiling_Label">Стеля (Ceiling), dB</sys:String>
 
-    <!-- VU метри -->
     <sys:String x:Key="VuMeters_Group">Рівні сигналу (VU)</sys:String>
     <sys:String x:Key="Vu_Input">Вхід:</sys:String>
     <sys:String x:Key="Vu_Output">Вихід:</sys:String>
 
-    <!-- Кнопка інсталяції CABLE -->
     <sys:String x:Key="InstallCable_Btn">Установити VB-Cable</sys:String>
+    <sys:String x:Key="CableInstalled_Btn">Драйвер встановлено</sys:String>
 </ResourceDictionary>
