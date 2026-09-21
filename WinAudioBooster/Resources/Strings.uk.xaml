@@ -1,0 +1,33 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Загальні -->
+    <sys:String x:Key="AppTitle">WinAudioBooster</sys:String>
+
+    <!-- MainWindow -->
+    <sys:String x:Key="MainWindow_Title">WinAudioBooster – Налаштування</sys:String>
+    <sys:String x:Key="Gain_Label">Підсилення (Gain), dB</sys:String>
+    <sys:String x:Key="HighGainWarning_Text">Високий рівень підсилення може пошкодити динаміки/навушники та слух.</sys:String>
+    <sys:String x:Key="Language_Label">Мова / Language</sys:String>
+    <sys:String x:Key="Language_Ukrainian">Українська</sys:String>
+    <sys:String x:Key="Language_English">English</sys:String>
+
+    <!-- DSP Налаштування -->
+    <sys:String x:Key="Compressor_Group">Компресор</sys:String>
+    <sys:String x:Key="Threshold_Label">Поріг (Threshold), dB</sys:String>
+    <sys:String x:Key="Ratio_Label">Співвідношення (Ratio)</sys:String>
+    <sys:String x:Key="Attack_Label">Атака (Attack), мс</sys:String>
+    <sys:String x:Key="Release_Label">Відновлення (Release), мс</sys:String>
+
+    <sys:String x:Key="Limiter_Group">Лімітер</sys:String>
+    <sys:String x:Key="Ceiling_Label">Стеля (Ceiling), dB</sys:String>
+
+    <!-- VU метри -->
+    <sys:String x:Key="VuMeters_Group">Рівні сигналу (VU)</sys:String>
+    <sys:String x:Key="Vu_Input">Вхід:</sys:String>
+    <sys:String x:Key="Vu_Output">Вихід:</sys:String>
+
+    <!-- Кнопка інсталяції CABLE -->
+    <sys:String x:Key="InstallCable_Btn">Установити VB-Cable</sys:String>
+</ResourceDictionary>

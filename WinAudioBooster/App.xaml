@@ -1,0 +1,9 @@
+﻿<Application x:Class="WinAudioBooster.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:WinAudioBooster"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- Словники локалізації підвантажуються динамічно у коді App.xaml.cs -->
+    </Application.Resources>
+</Application>
