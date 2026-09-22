@@ -1,23 +1,19 @@
 using System;
+using System.Numerics;
 using NAudio.Wave;
 
 namespace WinAudioBooster.Audio
 {
-    /// <summary>
-    /// Повний DSP-процесор: Gain, Компресор, Лімітер та вимірювання рівнів (VU-метри).
-    /// </summary>
     public class DspProcessor : ISampleProvider
     {
         private readonly ISampleProvider _source;
 
-        // Показники рівня для VU-метрів (0.0 - 1.0)
         public LevelMeter InputMeter { get; } = new();
         public LevelMeter OutputMeter { get; } = new();
 
         public WaveFormat WaveFormat => _source.WaveFormat;
         public bool IsEnabled { get; set; } = true;
 
-        // 1. Gain
         private float _gainDb = 0f;
         private float _linearGain = 1.0f;
         public float GainDb
@@ -30,7 +26,6 @@ namespace WinAudioBooster.Audio
             }
         }
 
-        // 2. Компресор
         public bool IsCompressorEnabled { get; set; } = true;
         public float CompressorThresholdDb { get; set; } = -20f;
         public float CompressorRatio { get; set; } = 3f;
@@ -39,10 +34,21 @@ namespace WinAudioBooster.Audio
 
         private float _envelope = 0f;
 
-        // 3. Лімітер
         public bool IsLimiterEnabled { get; set; } = true;
         public float LimiterThresholdDb { get; set; } = -1.0f;
-        public float LimiterCeilingDb { get; set; } = -0.3f;
+        
+        private float _limiterCeilingDb = -0.3f;
+        private float _ceilingLinear = 0.9659f; // cached Pow(10, -0.3/20)
+
+        public float LimiterCeilingDb
+        {
+            get => _limiterCeilingDb;
+            set
+            {
+                _limiterCeilingDb = value;
+                _ceilingLinear = (float)Math.Pow(10, _limiterCeilingDb / 20.0);
+            }
+        }
 
         public DspProcessor(ISampleProvider source)
         {
@@ -54,7 +60,6 @@ namespace WinAudioBooster.Audio
             int samplesRead = _source.Read(buffer, offset, count);
             if (samplesRead == 0) return 0;
 
-            // Вимірюємо вхідний рівень до обробки
             InputMeter.ProcessSamples(buffer, offset, samplesRead);
 
             if (!IsEnabled)
@@ -64,72 +69,68 @@ namespace WinAudioBooster.Audio
             }
 
             int sampleRate = WaveFormat.SampleRate;
+            float gain = _linearGain;
+            bool useSimd = Vector.IsHardwareAccelerated && samplesRead >= Vector<float>.Count;
 
-            for (int i = 0; i < samplesRead; i++)
+            int i = 0;
+            int endBoundary = offset + samplesRead;
+
+            // SIMD-прискорене векторне підсилення (Gain)
+            if (useSimd && Math.Abs(gain - 1.0f) > 0.001f)
             {
-                int index = offset + i;
-                float sample = buffer[index];
+                int vectorSize = Vector<float>.Count;
+                var gainVector = new Vector<float>(gain);
 
-                // Крок 1: Застосування Gain
-                sample *= _linearGain;
-
-                // Крок 2: Компресор
-                if (IsCompressorEnabled)
+                for (; i <= endBoundary - vectorSize; i += vectorSize)
                 {
-                    sample = ApplyCompressor(sample, sampleRate);
+                    var v = new Vector<float>(buffer, i);
+                    (v * gainVector).CopyTo(buffer, i);
                 }
-
-                // Крок 3: Лімітер (Limiter / Ceiling)
-                if (IsLimiterEnabled)
-                {
-                    sample = ApplyLimiter(sample);
-                }
-
-                buffer[index] = sample;
             }
 
-            // Вимірюємо вихідний рівень після обробки
-            OutputMeter.ProcessSamples(buffer, offset, samplesRead);
-
-            return samplesRead;
-        }
-
-        private float ApplyCompressor(float sample, int sampleRate)
-        {
-            float absSample = Math.Abs(sample);
-
-            // Обчислення огинаючої (envelope) з урахуванням Attack/Release
+            // Скалярна обробка залишкових семплів та ефектів
             float attackCoef = (float)Math.Exp(-1.0 / (sampleRate * (CompressorAttackMs / 1000.0)));
             float releaseCoef = (float)Math.Exp(-1.0 / (sampleRate * (CompressorReleaseMs / 1000.0)));
+            float ceiling = _ceilingLinear;
 
-            if (absSample > _envelope)
-                _envelope = attackCoef * _envelope + (1 - attackCoef) * absSample;
-            else
-                _envelope = releaseCoef * _envelope + (1 - releaseCoef) * absSample;
-
-            float envDb = 20f * (float)Math.Log10(Math.Max(_envelope, 1e-6f));
-
-            if (envDb > CompressorThresholdDb)
+            for (; i < endBoundary; i++)
             {
-                float overDb = envDb - CompressorThresholdDb;
-                float compressedDb = CompressorThresholdDb + (overDb / CompressorRatio);
-                float gainReductionDb = compressedDb - envDb;
-                float gainReductionLinear = (float)Math.Pow(10, gainReductionDb / 20.0);
+                float sample = buffer[i];
 
-                sample *= gainReductionLinear;
+                if (!useSimd)
+                {
+                    sample *= gain;
+                }
+
+                if (IsCompressorEnabled)
+                {
+                    float absSample = Math.Abs(sample);
+                    _envelope = absSample > _envelope
+                        ? attackCoef * _envelope + (1 - attackCoef) * absSample
+                        : releaseCoef * _envelope + (1 - releaseCoef) * absSample;
+
+                    float envDb = 20f * (float)Math.Log10(Math.Max(_envelope, 1e-6f));
+
+                    if (envDb > CompressorThresholdDb)
+                    {
+                        float overDb = envDb - CompressorThresholdDb;
+                        float compressedDb = CompressorThresholdDb + (overDb / CompressorRatio);
+                        float gainReductionLinear = (float)Math.Pow(10, (compressedDb - envDb) / 20.0);
+                        sample *= gainReductionLinear;
+                    }
+                }
+
+                if (IsLimiterEnabled)
+                {
+                    if (sample > ceiling) sample = ceiling;
+                    else if (sample < -ceiling) sample = -ceiling;
+                }
+
+                buffer[i] = sample;
             }
 
-            return sample;
-        }
-
-        private float ApplyLimiter(float sample)
-        {
-            float ceilingLinear = (float)Math.Pow(10, LimiterCeilingDb / 20.0);
-
-            if (sample > ceilingLinear) return ceilingLinear;
-            if (sample < -ceilingLinear) return -ceilingLinear;
-
-            return sample;
+            OutputMeter.ProcessSamples(buffer, offset, samplesRead);
+            return samplesRead;
         }
     }
 }

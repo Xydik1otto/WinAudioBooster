@@ -7,6 +7,7 @@
     <sys:String x:Key="EnableBooster_Label">Enable Booster</sys:String>
     <sys:String x:Key="BoosterState_On">ACTIVE</sys:String>
     <sys:String x:Key="BoosterState_Off">OFF</sys:String>
+    <sys:String x:Key="AutoStart_Label">Start automatically with Windows</sys:String>
 
     <!-- Routing -->
     <sys:String x:Key="Routing_Group">Windows Audio Routing</sys:String>
@@ -19,6 +20,7 @@
     <sys:String x:Key="Presets_Group">Presets</sys:String>
     <sys:String x:Key="Preset_SaveAs">Save New</sys:String>
     <sys:String x:Key="Preset_Update">Update</sys:String>
+    <sys:String x:Key="Preset_PromptName">Enter a name for the new preset:</sys:String>
     <sys:String x:Key="Preset_Delete">Delete</sys:String>
 
     <sys:String x:Key="Gain_Label">Gain, dB</sys:String>

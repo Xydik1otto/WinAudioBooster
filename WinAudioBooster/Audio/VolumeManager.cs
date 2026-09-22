@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using NAudio.CoreAudioApi;
 
 namespace WinAudioBooster.Audio
@@ -10,9 +11,6 @@ namespace WinAudioBooster.Audio
 
         public event EventHandler<double>? VolumeChangedExternally;
 
-        /// <summary>
-        /// Прив'язує відстеження гучності до CABLE Input (коли бустер увімкнено) або фізичних динаміків (коли вимкнено).
-        /// </summary>
         public void BindDevice(MMDevice? device)
         {
             UnbindDevice();
@@ -32,47 +30,45 @@ namespace WinAudioBooster.Audio
             VolumeChangedExternally?.Invoke(this, percent);
         }
 
-        /// <summary>
-        /// Керує системним пристроєм у мікшері Windows (0..100%) та вираховує DSP Gain (дБ) для підсилення понад 100%.
-        /// </summary>
-        public float SetVolumeAndCalculateGainDb(double totalPercent, MMDevice? controlledDevice, MMDevice? physicalSpeakerDevice)
+        public Task<float> SetVolumeAndCalculateGainDbAsync(double totalPercent, MMDevice? controlledDevice, MMDevice? physicalSpeakerDevice)
         {
-            _isInternalChange = true;
-            try
+            return Task.Run(() =>
             {
-                // Фізичні динаміки завжди тримаємо на 100% гучності для максимальної якості PCM-потоку
-                if (physicalSpeakerDevice?.AudioEndpointVolume != null)
+                _isInternalChange = true;
+                try
                 {
-                    physicalSpeakerDevice.AudioEndpointVolume.MasterVolumeLevelScalar = 1.0f;
-                }
-
-                if (controlledDevice?.AudioEndpointVolume != null)
-                {
-                    if (totalPercent <= 100.0)
+                    if (physicalSpeakerDevice?.AudioEndpointVolume != null)
                     {
-                        float scalar = (float)(totalPercent / 100.0);
-                        controlledDevice.AudioEndpointVolume.MasterVolumeLevelScalar = Math.Clamp(scalar, 0.0f, 1.0f);
+                        if (Math.Abs(physicalSpeakerDevice.AudioEndpointVolume.MasterVolumeLevelScalar - 1.0f) > 0.01f)
+                        {
+                            physicalSpeakerDevice.AudioEndpointVolume.MasterVolumeLevelScalar = 1.0f;
+                        }
                     }
-                    else
+
+                    if (controlledDevice?.AudioEndpointVolume != null)
                     {
-                        // При значенні > 100% системний мікшер Windows фіксується на 100%
-                        controlledDevice.AudioEndpointVolume.MasterVolumeLevelScalar = 1.0f;
+                        float targetScalar = totalPercent <= 100.0 ? Math.Clamp((float)(totalPercent / 100.0), 0.0f, 1.0f) : 1.0f;
+                        
+                        if (Math.Abs(controlledDevice.AudioEndpointVolume.MasterVolumeLevelScalar - targetScalar) > 0.005f)
+                        {
+                            controlledDevice.AudioEndpointVolume.MasterVolumeLevelScalar = targetScalar;
+                        }
                     }
-                }
 
-                if (totalPercent <= 100.0)
+                    if (totalPercent <= 100.0) return 0.0f;
+
+                    double ratio = totalPercent / 100.0;
+                    return (float)(20.0 * Math.Log10(ratio));
+                }
+                catch
                 {
-                    return 0.0f; // DSP Gain = 0 dB
+                    return 0.0f;
                 }
-
-                // Переведення відсотків понад 100% у децибели (Gain dB)
-                double ratio = totalPercent / 100.0;
-                return (float)(20.0 * Math.Log10(ratio));
-            }
-            finally
-            {
-                _isInternalChange = false;
-            }
+                finally
+                {
+                    _isInternalChange = false;
+                }
+            });
         }
 
         public void UnbindDevice()

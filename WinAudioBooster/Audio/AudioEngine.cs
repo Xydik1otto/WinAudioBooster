@@ -26,16 +26,14 @@ namespace WinAudioBooster.Audio
 
             try
             {
-                // 1. Ініціалізація захоплення
                 _capture = captureDevice != null 
                     ? new WasapiLoopbackCapture(captureDevice) 
                     : new WasapiLoopbackCapture();
 
-                // 2. Створення стабільного буфера з ReadFully = true (Усуває тріск)
                 _waveBuffer = new BufferedWaveProvider(_capture.WaveFormat)
                 {
                     DiscardOnBufferOverflow = true,
-                    BufferDuration = TimeSpan.FromSeconds(2),
+                    BufferDuration = TimeSpan.FromMilliseconds(500),
                     ReadFully = true
                 };
 
@@ -47,13 +45,9 @@ namespace WinAudioBooster.Audio
                     }
                 };
 
-                // 3. Конвертація у SampleProvider
                 ISampleProvider sampleProvider = _waveBuffer.ToSampleProvider();
-
-                // 4. Ініціалізація DSP
                 _dspProcessor = new DspProcessor(sampleProvider);
 
-                // 5. Отримання нативної частоти вихідного пристрою та ресемплінг за потреби
                 var outputMixFormat = outputDevice.AudioClient.MixFormat;
                 IWaveProvider finalWaveProvider = _dspProcessor.ToWaveProvider();
 
@@ -63,13 +57,13 @@ namespace WinAudioBooster.Audio
                     var targetFormat = new WaveFormat(outputMixFormat.SampleRate, 16, outputMixFormat.Channels);
                     _resampler = new MediaFoundationResampler(finalWaveProvider, targetFormat)
                     {
-                        ResamplerQuality = 60 // Виправлена назва властивості у NAudio
+                        ResamplerQuality = 30 // Баланс якості та швидкодії CPU
                     };
                     finalWaveProvider = _resampler;
                 }
 
-                // 6. Ініціалізація виводу з затримкою 80 мс для стабільності
-                _output = new WasapiOut(outputDevice, AudioClientShareMode.Shared, false, 80);
+                // Низька затримка буфера 40 мс без тріску
+                _output = new WasapiOut(outputDevice, AudioClientShareMode.Shared, false, 40);
                 _output.Init(finalWaveProvider);
 
                 _output.Play();

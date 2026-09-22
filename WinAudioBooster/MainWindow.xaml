@@ -4,8 +4,9 @@
         xmlns:local="clr-namespace:WinAudioBooster"
         xmlns:converters="clr-namespace:WinAudioBooster.Converters"
         Title="{DynamicResource MainWindow_Title}"
-        Height="840"
-        Width="600"
+        Height="860"
+        Width="620"
+        Background="{StaticResource RazerBg}"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
@@ -13,202 +14,268 @@
         <converters:GainToWarningVisibilityConverter x:Key="GainToWarningVisibilityConverter"/>
     </Window.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+    <Grid x:Name="RootGrid">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <Grid Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-            <!-- Header + Cable Button -->
-            <Grid Grid.Row="0" Margin="0,0,0,16">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{DynamicResource AppTitle}" FontSize="22" FontWeight="Bold"/>
-                <Button Grid.Column="1" x:Name="InstallCableButton" Content="{DynamicResource InstallCable_Btn}" Click="InstallCableButton_OnClick" Padding="10,4" Background="#E1F5FE" BorderBrush="#29B6F6"/>
-            </Grid>
-
-            <!-- Quick Routing Toggle Group -->
-            <GroupBox Grid.Row="1" Header="{DynamicResource Routing_Group}" Padding="8" Margin="0,0,0,12">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Button Grid.Column="0" x:Name="SetCableDefaultBtn" Content="{DynamicResource SetCableDefault_Btn}" Click="SetCableDefaultBtn_OnClick" Margin="0,0,4,0" Padding="6"/>
-                    <Button Grid.Column="1" x:Name="SetSpeakersDefaultBtn" Content="{DynamicResource SetSpeakersDefault_Btn}" Click="SetSpeakersDefaultBtn_OnClick" Margin="4,0,0,0" Padding="6"/>
-                </Grid>
-            </GroupBox>
-
-            <!-- Booster Toggle -->
-            <Border Grid.Row="2" Background="#F8F9FA" BorderBrush="#DEE2E6" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
-                <Grid>
+                <!-- Top Header & Buttons -->
+                <Grid Grid.Row="0" Margin="0,0,0,16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <CheckBox Grid.Column="0" 
-                              x:Name="EnableBoosterCheckBox"
-                              Content="{DynamicResource EnableBooster_Label}"
-                              FontSize="15"
-                              FontWeight="Bold"
-                              VerticalAlignment="Center"
-                              Click="EnableBoosterCheckBox_OnClick"/>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="8" Height="24" Background="{StaticResource RazerGreen}" CornerRadius="2" Margin="0,0,10,0">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="8" ShadowDepth="0" Color="#00FF66" Opacity="0.8"/>
+                            </Border.Effect>
+                        </Border>
+                        <TextBlock Text="{DynamicResource AppTitle}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource RazerTextMain}"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Column="1" 
-                               x:Name="BoosterStateText"
-                               Text="{DynamicResource BoosterState_Off}"
-                               FontSize="13"
-                               FontWeight="Bold"
-                               Foreground="Gray"
-                               VerticalAlignment="Center"/>
+                    <!-- App Mixer Toggle Button -->
+                    <Button Grid.Column="1" Content="🎛️ Мікшер програм" Click="ToggleAppMixer_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,8,0"/>
+                    <Button Grid.Column="2" x:Name="InstallCableButton" Content="{DynamicResource InstallCable_Btn}" Click="InstallCableButton_OnClick" Style="{StaticResource RazerPrimaryButton}"/>
                 </Grid>
-            </Border>
 
-            <!-- DSP Settings Panel -->
-            <StackPanel Grid.Row="3" x:Name="DspSettingsPanel" IsEnabled="False">
-
-                <!-- Physical Output Device -->
-                <GroupBox Header="{DynamicResource OutputDevice_Group}" Padding="10" Margin="0,0,0,12">
+                <!-- Quick Routing Toggle Group -->
+                <GroupBox Grid.Row="1" Header="{DynamicResource Routing_Group}" Padding="10">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <TextBlock Grid.Column="0" Text="{DynamicResource OutputDevice_Label}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="12"/>
-                        <ComboBox Grid.Column="1" x:Name="OutputDeviceComboBox" SelectionChanged="OutputDeviceComboBox_OnSelectionChanged" Height="26"/>
+                        <Button Grid.Column="0" x:Name="SetCableDefaultBtn" Content="{DynamicResource SetCableDefault_Btn}" Click="SetCableDefaultBtn_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,4,0"/>
+                        <Button Grid.Column="1" x:Name="SetSpeakersDefaultBtn" Content="{DynamicResource SetSpeakersDefault_Btn}" Click="SetSpeakersDefaultBtn_OnClick" Style="{StaticResource RazerButton}" Margin="4,0,0,0"/>
                     </Grid>
                 </GroupBox>
 
-                <!-- Presets -->
-                <GroupBox Header="{DynamicResource Presets_Group}" Padding="10" Margin="0,0,0,12">
+                <!-- Main Booster Toggle Banner -->
+                <Border Grid.Row="2" Background="{StaticResource RazerCardBg}" BorderBrush="{StaticResource RazerBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <ComboBox Grid.Column="0" 
-                                  x:Name="PresetsComboBox" 
-                                  SelectionChanged="PresetsComboBox_OnSelectionChanged"
-                                  Height="28" 
-                                  Margin="0,0,8,0"/>
+                        <CheckBox Grid.Column="0" 
+                                  x:Name="EnableBoosterCheckBox"
+                                  Content="{DynamicResource EnableBooster_Label}"
+                                  FontSize="15"
+                                  FontWeight="Bold"
+                                  VerticalAlignment="Center"
+                                  Click="EnableBoosterCheckBox_OnClick"/>
 
-                        <Button Grid.Column="1" 
-                                x:Name="SaveAsPresetButton" 
-                                Content="{DynamicResource Preset_SaveAs}" 
-                                Click="SaveAsPresetButton_OnClick"
-                                Padding="8,4" 
-                                Margin="0,0,4,0"/>
-
-                        <Button Grid.Column="2" 
-                                x:Name="UpdatePresetButton" 
-                                Content="{DynamicResource Preset_Update}" 
-                                Click="UpdatePresetButton_OnClick"
-                                Padding="8,4" 
-                                Margin="0,0,4,0"/>
-
-                        <Button Grid.Column="3" 
-                                x:Name="DeletePresetButton" 
-                                Content="{DynamicResource Preset_Delete}" 
-                                Click="DeletePresetButton_OnClick"
-                                Padding="8,4" 
-                                Foreground="Crimson"/>
+                        <TextBlock Grid.Column="1" 
+                                   x:Name="BoosterStateText"
+                                   Text="{DynamicResource BoosterState_Off}"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource RazerTextMuted}"
+                                   VerticalAlignment="Center"/>
                     </Grid>
-                </GroupBox>
-
-                <!-- Gain / Volume (%) -->
-                <GroupBox Header="Загальна гучність (Volume)" Padding="10" Margin="0,0,0,12">
-                    <StackPanel>
-                        <Grid>
-                            <TextBlock Text="Гучність" FontSize="13" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="GainValueText" Text="100%" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToColorConverter}}"/>
-                        </Grid>
-                        <Slider x:Name="GainSlider" Minimum="0" Maximum="300" Value="100" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="GainSlider_OnValueChanged" Foreground="{Binding Value, RelativeSource={RelativeSource Self}, Converter={StaticResource GainToColorConverter}}" Margin="0,8,0,0"/>
-                    </StackPanel>
-                </GroupBox>
-
-                <!-- Gain Warning -->
-                <Border Margin="0,0,0,12" Padding="10" Background="#FFFEEFB3" BorderBrush="#FFFFC107" BorderThickness="1" CornerRadius="4" Visibility="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToWarningVisibilityConverter}}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="⚠️ " FontSize="14"/>
-                        <TextBlock Text="{DynamicResource HighGainWarning_Text}" TextWrapping="Wrap" FontSize="12" Foreground="#FF856404"/>
-                    </StackPanel>
                 </Border>
 
-                <!-- Compressor -->
-                <GroupBox Header="{DynamicResource Compressor_Group}" Padding="10" Margin="0,0,0,12">
-                    <StackPanel>
-                        <Grid Margin="0,0,0,4">
-                            <TextBlock Text="{DynamicResource Threshold_Label}" FontSize="12"/>
-                            <TextBlock x:Name="CompThresholdText" HorizontalAlignment="Right" FontSize="12" FontWeight="Bold"/>
-                        </Grid>
-                        <Slider x:Name="CompThresholdSlider" Minimum="-60" Maximum="0" Value="-20" ValueChanged="CompThresholdSlider_OnValueChanged" Margin="0,0,0,8"/>
+                <!-- DSP Settings Panel -->
+                <StackPanel Grid.Row="3" x:Name="DspSettingsPanel" IsEnabled="False">
 
-                        <Grid Margin="0,0,0,4">
-                            <TextBlock Text="{DynamicResource Ratio_Label}" FontSize="12"/>
-                            <TextBlock x:Name="CompRatioText" HorizontalAlignment="Right" FontSize="12" FontWeight="Bold"/>
+                    <!-- Physical Output Device -->
+                    <GroupBox Header="{DynamicResource OutputDevice_Group}" Padding="10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="{DynamicResource OutputDevice_Label}" Foreground="{StaticResource RazerTextMuted}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="12"/>
+                            <ComboBox Grid.Column="1" x:Name="OutputDeviceComboBox" SelectionChanged="OutputDeviceComboBox_OnSelectionChanged" Height="28"/>
                         </Grid>
-                        <Slider x:Name="CompRatioSlider" Minimum="1" Maximum="20" Value="3" ValueChanged="CompRatioSlider_OnValueChanged"/>
-                    </StackPanel>
+                    </GroupBox>
+
+                    <!-- Presets Bar -->
+                    <GroupBox Header="{DynamicResource Presets_Group}" Padding="10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <ComboBox Grid.Column="0" x:Name="PresetsComboBox" SelectionChanged="PresetsComboBox_OnSelectionChanged" Height="28" Margin="0,0,8,0"/>
+                            <Button Grid.Column="1" x:Name="SaveAsPresetButton" Content="{DynamicResource Preset_SaveAs}" Click="SaveAsPresetButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,4,0"/>
+                            <Button Grid.Column="2" x:Name="RenamePresetButton" Content="Перейменов." Click="RenamePresetButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,4,0"/>
+                            <Button Grid.Column="3" x:Name="UpdatePresetButton" Content="{DynamicResource Preset_Update}" Click="UpdatePresetButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,4,0"/>
+                            <Button Grid.Column="4" x:Name="DeletePresetButton" Content="{DynamicResource Preset_Delete}" Click="DeletePresetButton_OnClick" Style="{StaticResource RazerButton}" Foreground="#FF5555"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Volume / Gain Slider -->
+                    <GroupBox Header="Загальна гучність (Volume)" Padding="10">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,6">
+                                <TextBlock Text="Рівень підсилення" Foreground="{StaticResource RazerTextMain}" FontSize="12" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="GainValueText" Text="100%" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToColorConverter}}"/>
+                            </Grid>
+                            <Slider x:Name="GainSlider" Minimum="0" Maximum="300" Value="100" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="GainSlider_OnValueChanged"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <!-- High Gain Warning -->
+                    <Border Margin="0,0,0,12" Padding="10" Background="#2A1A00" BorderBrush="#FF9900" BorderThickness="1" CornerRadius="6" Visibility="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToWarningVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠️ " FontSize="13"/>
+                            <TextBlock Text="{DynamicResource HighGainWarning_Text}" TextWrapping="Wrap" FontSize="11" Foreground="#FFCC66"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Compressor -->
+                    <GroupBox Header="{DynamicResource Compressor_Group}" Padding="10">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,4">
+                                <TextBlock Text="{DynamicResource Threshold_Label}" Foreground="{StaticResource RazerTextMuted}" FontSize="11"/>
+                                <TextBlock x:Name="CompThresholdText" Foreground="{StaticResource RazerTextMain}" HorizontalAlignment="Right" FontSize="11" FontWeight="Bold"/>
+                            </Grid>
+                            <Slider x:Name="CompThresholdSlider" Minimum="-60" Maximum="0" Value="-20" ValueChanged="CompThresholdSlider_OnValueChanged" Margin="0,0,0,8"/>
+
+                            <Grid Margin="0,0,0,4">
+                                <TextBlock Text="{DynamicResource Ratio_Label}" Foreground="{StaticResource RazerTextMuted}" FontSize="11"/>
+                                <TextBlock x:Name="CompRatioText" Foreground="{StaticResource RazerTextMain}" HorizontalAlignment="Right" FontSize="11" FontWeight="Bold"/>
+                            </Grid>
+                            <Slider x:Name="CompRatioSlider" Minimum="1" Maximum="20" Value="3" ValueChanged="CompRatioSlider_OnValueChanged"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <!-- Limiter -->
+                    <GroupBox Header="{DynamicResource Limiter_Group}" Padding="10">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,4">
+                                <TextBlock Text="{DynamicResource Ceiling_Label}" Foreground="{StaticResource RazerTextMuted}" FontSize="11"/>
+                                <TextBlock x:Name="LimiterCeilingText" Foreground="{StaticResource RazerTextMain}" HorizontalAlignment="Right" FontSize="11" FontWeight="Bold"/>
+                            </Grid>
+                            <Slider x:Name="LimiterCeilingSlider" Minimum="-3" Maximum="0" Value="-0.3" TickFrequency="0.1" ValueChanged="LimiterCeilingSlider_OnValueChanged"/>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+
+                <!-- VU Meters -->
+                <GroupBox Grid.Row="4" Header="{DynamicResource VuMeters_Group}" Padding="10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Vu_Input}" Foreground="{StaticResource RazerTextMuted}" VerticalAlignment="Center" FontSize="11"/>
+                        <ProgressBar Grid.Row="0" Grid.Column="1" x:Name="InputVuBar" Height="8" Minimum="0" Maximum="1" Foreground="{StaticResource RazerGreen}" Margin="0,3"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Vu_Output}" Foreground="{StaticResource RazerTextMuted}" VerticalAlignment="Center" FontSize="11"/>
+                        <ProgressBar Grid.Row="1" Grid.Column="1" x:Name="OutputVuBar" Height="8" Minimum="0" Maximum="1" Foreground="#00BCFF" Margin="0,3"/>
+                    </Grid>
                 </GroupBox>
 
-                <!-- Limiter -->
-                <GroupBox Header="{DynamicResource Limiter_Group}" Padding="10" Margin="0,0,0,12">
+                <!-- System Settings: AutoStart, Hotkey & Language -->
+                <GroupBox Grid.Row="5" Header="Системні налаштування" Padding="12" Margin="0,4,0,0">
                     <StackPanel>
-                        <Grid Margin="0,0,0,4">
-                            <TextBlock Text="{DynamicResource Ceiling_Label}" FontSize="12"/>
-                            <TextBlock x:Name="LimiterCeilingText" HorizontalAlignment="Right" FontSize="12" FontWeight="Bold"/>
+                        <!-- AutoStart CheckBox -->
+                        <CheckBox x:Name="AutoStartCheckBox" 
+                                  Content="{DynamicResource AutoStart_Label}" 
+                                  Click="AutoStartCheckBox_OnClick" 
+                                  Margin="0,0,0,10"/>
+
+                        <!-- Hotkey Setting Row -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Глобальна клавіша бустера" Foreground="{StaticResource RazerTextMuted}" FontSize="11"/>
+                                <TextBlock x:Name="HotkeyDisplayText" Text="Ctrl + Alt + B" Foreground="{StaticResource RazerTextMain}" FontSize="12" FontWeight="SemiBold"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" x:Name="ChangeHotkeyButton" Content="Змінити" Click="ChangeHotkeyButton_OnClick" Style="{StaticResource RazerButton}" Padding="8,4" VerticalAlignment="Center"/>
                         </Grid>
-                        <Slider x:Name="LimiterCeilingSlider" Minimum="-3" Maximum="0" Value="-0.3" TickFrequency="0.1" ValueChanged="LimiterCeilingSlider_OnValueChanged"/>
+
+                        <!-- Language Switch -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Language_Label}" Foreground="{StaticResource RazerTextMuted}" VerticalAlignment="Center" FontSize="12" Margin="0,0,12,0"/>
+                            <ComboBox Grid.Column="1" x:Name="LanguageComboBox" SelectionChanged="LanguageComboBox_OnSelectionChanged" HorizontalAlignment="Left" Width="140" Height="26">
+                                <ComboBoxItem Content="{DynamicResource Language_Ukrainian}" Tag="uk-UA"/>
+                                <ComboBoxItem Content="{DynamicResource Language_English}" Tag="en-US"/>
+                            </ComboBox>
+                        </Grid>
                     </StackPanel>
                 </GroupBox>
-            </StackPanel>
+            </Grid>
+        </ScrollViewer>
 
-            <!-- VU Meters -->
-            <GroupBox Grid.Row="4" Header="{DynamicResource VuMeters_Group}" Padding="10" Margin="0,0,0,12">
+        <!-- Animated Per-App Mixer Overlay Panel -->
+        <Border x:Name="AppMixerOverlay" Background="#F00B0B0E" Visibility="Collapsed" Opacity="0">
+            <Border Background="{StaticResource RazerCardBg}" BorderBrush="{StaticResource RazerGreen}" BorderThickness="1.5" CornerRadius="12" Margin="30" Padding="20">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="0" Color="#00FF66" Opacity="0.3"/>
+                </Border.Effect>
+
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="60"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Vu_Input}" VerticalAlignment="Center" FontSize="12"/>
-                    <ProgressBar Grid.Row="0" Grid.Column="1" x:Name="InputVuBar" Height="14" Minimum="0" Maximum="1" Foreground="#4CAF50" Margin="0,2"/>
+                    <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <TextBlock Text="🎛️ Мікшер гучності програм (з Boost до 300%)" Foreground="{StaticResource RazerTextMain}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Content="✕ Закрити" Click="CloseAppMixer_OnClick" Style="{StaticResource RazerButton}" HorizontalAlignment="Right"/>
+                    </Grid>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Vu_Output}" VerticalAlignment="Center" FontSize="12"/>
-                    <ProgressBar Grid.Row="1" Grid.Column="1" x:Name="OutputVuBar" Height="14" Minimum="0" Maximum="1" Foreground="#2196F3" Margin="0,2"/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="AppMixerItemsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#1A1A22" BorderBrush="{StaticResource RazerBorder}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" Padding="12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="130"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="60"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" Text="{Binding DisplayName}" Foreground="{StaticResource RazerTextMain}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+
+                                            <Slider Grid.Column="1" Minimum="0" Maximum="300" Value="{Binding VolumePercent, Mode=TwoWay}" Tag="{Binding ProcessId}" ValueChanged="AppVolumeSlider_OnValueChanged" VerticalAlignment="Center" Margin="12,0"/>
+
+                                            <TextBlock Grid.Column="2" Text="{Binding VolumePercent, StringFormat={}{0:F0}%}" Foreground="{StaticResource RazerGreen}" FontSize="13" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Button Grid.Row="2" Content="🔄 Оновити список процесів" Click="RefreshAppSessions_OnClick" Style="{StaticResource RazerPrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Center"/>
                 </Grid>
-            </GroupBox>
-
-            <!-- Language Switch -->
-            <Grid Grid.Row="5" VerticalAlignment="Bottom" Margin="0,8,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Grid.Column="0" Text="{DynamicResource Language_Label}" VerticalAlignment="Center" FontSize="13" Margin="0,0,12,0"/>
-                <ComboBox Grid.Column="1" x:Name="LanguageComboBox" SelectionChanged="LanguageComboBox_OnSelectionChanged" HorizontalAlignment="Left" Width="140" Height="26">
-                    <ComboBoxItem Content="{DynamicResource Language_Ukrainian}" Tag="uk-UA"/>
-                    <ComboBoxItem Content="{DynamicResource Language_English}" Tag="en-US"/>
-                </ComboBox>
-            </Grid>
-        </Grid>
-    </ScrollViewer>
+            </Border>
+        </Border>
+    </Grid>
 </Window>

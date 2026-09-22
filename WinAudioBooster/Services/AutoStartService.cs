@@ -1,19 +1,20 @@
 using System;
+using System.Diagnostics;
 using Microsoft.Win32;
 
 namespace WinAudioBooster.Services
 {
-    public static class AutoStartService
+    public class AutoStartService
     {
         private const string AppName = "WinAudioBooster";
-        private const string RegistryKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
-        public static bool IsAutoStartEnabled()
+        public bool IsAutoStartEnabled()
         {
             try
             {
-                using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath, false);
-                return key?.GetValue(AppName) != null;
+                using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", false);
+                object? value = key?.GetValue(AppName);
+                return value != null;
             }
             catch
             {
@@ -21,28 +22,30 @@ namespace WinAudioBooster.Services
             }
         }
 
-        public static void SetAutoStart(bool enable)
+        public void SetAutoStart(bool enable)
         {
             try
             {
-                using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath, true);
+                using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
                 if (key == null) return;
 
                 if (enable)
                 {
-                    string executablePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName 
-                                            ?? System.Reflection.Assembly.GetExecutingAssembly().Location;
-                    key.SetValue(AppName, $"\"{executablePath}\" --autostart");
+                    string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                    if (!string.IsNullOrEmpty(exePath))
+                    {
+                        key.SetValue(AppName, $"\"{exePath}\"");
+                    }
                 }
                 else
                 {
-                    if (key.GetValue(AppName) != null)
-                    {
-                        key.DeleteValue(AppName);
-                    }
+                    key.DeleteValue(AppName, false);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"AutoStart error: {ex.Message}");
+            }
         }
     }
 }

@@ -7,6 +7,7 @@
     <sys:String x:Key="EnableBooster_Label">Увімкнути бустер</sys:String>
     <sys:String x:Key="BoosterState_On">УВІМКНЕНО</sys:String>
     <sys:String x:Key="BoosterState_Off">ВИМКНЕНО</sys:String>
+    <sys:String x:Key="AutoStart_Label">Автозапуск разом із Windows</sys:String>
 
     <!-- Перемикання дефолтного пристрою -->
     <sys:String x:Key="Routing_Group">Маршрутизація звуку Windows</sys:String>
@@ -19,6 +20,7 @@
     <sys:String x:Key="Presets_Group">Пресети</sys:String>
     <sys:String x:Key="Preset_SaveAs">Зберегти новий</sys:String>
     <sys:String x:Key="Preset_Update">Оновити</sys:String>
+    <sys:String x:Key="Preset_PromptName">Введіть назву для нового пресету:</sys:String>
     <sys:String x:Key="Preset_Delete">Видалити</sys:String>
 
     <sys:String x:Key="Gain_Label">Підсилення (Gain), dB</sys:String>

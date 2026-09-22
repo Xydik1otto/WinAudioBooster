@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using WinAudioBooster.Models;
+using WinAudioBooster.Utils;
 
 namespace WinAudioBooster.Services
 {
@@ -20,139 +20,65 @@ namespace WinAudioBooster.Services
         {
             return new List<Preset>
             {
-                new Preset
-                {
-                    Name = "Light Boost",
-                    IsBuiltIn = true,
-                    GainDb = 3.0,
-                    CompressorThresholdDb = -20.0,
-                    CompressorRatio = 2.0,
-                    CompressorAttackMs = 10.0,
-                    CompressorReleaseMs = 100.0,
-                    LimiterThresholdDb = -1.0,
-                    LimiterCeilingDb = -0.3
-                },
-                new Preset
-                {
-                    Name = "Max Boost",
-                    IsBuiltIn = true,
-                    GainDb = 10.0,
-                    CompressorThresholdDb = -30.0,
-                    CompressorRatio = 4.0,
-                    CompressorAttackMs = 5.0,
-                    CompressorReleaseMs = 150.0,
-                    LimiterThresholdDb = -0.5,
-                    LimiterCeilingDb = -0.3
-                },
-                new Preset
-                {
-                    Name = "Headphones",
-                    IsBuiltIn = true,
-                    GainDb = 6.0,
-                    CompressorThresholdDb = -25.0,
-                    CompressorRatio = 3.0,
-                    CompressorAttackMs = 8.0,
-                    CompressorReleaseMs = 120.0,
-                    LimiterThresholdDb = -1.0,
-                    LimiterCeilingDb = -0.5
-                },
-                new Preset
-                {
-                    Name = "Games",
-                    IsBuiltIn = true,
-                    GainDb = 7.0,
-                    CompressorThresholdDb = -28.0,
-                    CompressorRatio = 5.0,
-                    CompressorAttackMs = 2.0,
-                    CompressorReleaseMs = 80.0,
-                    LimiterThresholdDb = -0.5,
-                    LimiterCeilingDb = -0.2
-                },
-                new Preset
-                {
-                    Name = "Calls",
-                    IsBuiltIn = true,
-                    GainDb = 5.0,
-                    CompressorThresholdDb = -18.0,
-                    CompressorRatio = 4.0,
-                    CompressorAttackMs = 12.0,
-                    CompressorReleaseMs = 200.0,
-                    LimiterThresholdDb = -1.5,
-                    LimiterCeilingDb = -0.5
-                }
+                new Preset { Name = "Light Boost", IsBuiltIn = true, GainDb = 120, CompressorThresholdDb = -20, CompressorRatio = 2.0f, LimiterCeilingDb = -0.3f },
+                new Preset { Name = "Max Boost", IsBuiltIn = true, GainDb = 200, CompressorThresholdDb = -30, CompressorRatio = 4.0f, LimiterCeilingDb = -0.3f },
+                new Preset { Name = "Headphones", IsBuiltIn = true, GainDb = 140, CompressorThresholdDb = -25, CompressorRatio = 3.0f, LimiterCeilingDb = -0.5f },
+                new Preset { Name = "Games", IsBuiltIn = true, GainDb = 160, CompressorThresholdDb = -28, CompressorRatio = 5.0f, LimiterCeilingDb = -0.2f },
+                new Preset { Name = "Calls", IsBuiltIn = true, GainDb = 125, CompressorThresholdDb = -18, CompressorRatio = 4.0f, LimiterCeilingDb = -0.5f }
             };
-        }
-
-        public List<Preset> LoadAllPresets()
-        {
-            var presets = GetBuiltInPresets();
-            var customPresets = LoadCustomPresets();
-
-            foreach (var custom in customPresets)
-            {
-                if (!presets.Any(p => p.Name.Equals(custom.Name, StringComparison.OrdinalIgnoreCase)))
-                {
-                    presets.Add(custom);
-                }
-            }
-
-            return presets;
         }
 
         public List<Preset> LoadCustomPresets()
         {
-            if (!File.Exists(_presetsFilePath)) return new List<Preset>();
+            return JsonHelper.ReadJson<List<Preset>>(_presetsFilePath) ?? new List<Preset>();
+        }
 
-            try
-            {
-                string json = File.ReadAllText(_presetsFilePath);
-                var presets = JsonSerializer.Deserialize<List<Preset>>(json);
-                return presets ?? new List<Preset>();
-            }
-            catch
-            {
-                return new List<Preset>();
-            }
+        public List<Preset> LoadAllPresets()
+        {
+            var all = GetBuiltInPresets();
+            var custom = LoadCustomPresets();
+            all.AddRange(custom);
+            return all;
         }
 
         public void SaveCustomPreset(Preset newPreset)
         {
-            newPreset.IsBuiltIn = false;
-            var customPresets = LoadCustomPresets();
-
-            var existing = customPresets.FirstOrDefault(p => p.Name.Equals(newPreset.Name, StringComparison.OrdinalIgnoreCase));
-            if (existing != null)
-            {
-                customPresets.Remove(existing);
-            }
-
-            customPresets.Add(newPreset);
-            SaveCustomPresetsToFile(customPresets);
-        }
-
-        public bool DeleteCustomPreset(string presetName)
-        {
-            var customPresets = LoadCustomPresets();
-            var existing = customPresets.FirstOrDefault(p => p.Name.Equals(presetName, StringComparison.OrdinalIgnoreCase));
+            var custom = LoadCustomPresets();
+            var existing = custom.FirstOrDefault(p => p.Name.Equals(newPreset.Name, StringComparison.OrdinalIgnoreCase));
 
             if (existing != null)
             {
-                customPresets.Remove(existing);
-                SaveCustomPresetsToFile(customPresets);
-                return true;
+                existing.GainDb = newPreset.GainDb;
+                existing.CompressorThresholdDb = newPreset.CompressorThresholdDb;
+                existing.CompressorRatio = newPreset.CompressorRatio;
+                existing.LimiterCeilingDb = newPreset.LimiterCeilingDb;
+            }
+            else
+            {
+                newPreset.IsBuiltIn = false;
+                custom.Add(newPreset);
             }
 
-            return false;
+            JsonHelper.WriteJson(_presetsFilePath, custom);
         }
 
-        private void SaveCustomPresetsToFile(List<Preset> presets)
+        public void RenameCustomPreset(string oldName, string newName)
         {
-            try
+            var custom = LoadCustomPresets();
+            var target = custom.FirstOrDefault(p => p.Name.Equals(oldName, StringComparison.OrdinalIgnoreCase));
+
+            if (target != null)
             {
-                string json = JsonSerializer.Serialize(presets, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_presetsFilePath, json);
+                target.Name = newName;
+                JsonHelper.WriteJson(_presetsFilePath, custom);
             }
-            catch { }
+        }
+
+        public void DeleteCustomPreset(string presetName)
+        {
+            var custom = LoadCustomPresets();
+            custom.RemoveAll(p => p.Name.Equals(presetName, StringComparison.OrdinalIgnoreCase));
+            JsonHelper.WriteJson(_presetsFilePath, custom);
         }
     }
 }
