@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using WinAudioBooster.Audio;
 using WinAudioBooster.Models;
 
 namespace WinAudioBooster.Services
 {
     public class AppDetector : IDisposable
     {
+        private readonly AppVolumeService _appVolumeService = new();
         private readonly Timer _timer;
         private readonly List<ProcessRule> _defaultRules;
         private List<ProcessRule> _userRules = new();
@@ -86,7 +88,15 @@ namespace WinAudioBooster.Services
                             PresetChangeRequested?.Invoke(this, rule.TargetPresetName);
                         }
 
-                        ProcessVolumeApplyRequested?.Invoke(this, rule);
+                        // Виправляємо виклик на асинхронний метод з AppVolumeService
+                        try
+                        {
+                            var deviceManager = new DeviceManager();
+                            var cable = deviceManager.FindCableDevice();
+                            _ = _appVolumeService.SetAppVolumeAndBoostAsync(cable, GetProcessIdByName(targetProc), rule.VolumePercent);
+                        }
+                        catch { }
+
                         return;
                     }
                 }
@@ -94,6 +104,20 @@ namespace WinAudioBooster.Services
                 _lastDetectedPreset = null;
             }
             catch { }
+        }
+
+        private int GetProcessIdByName(string procName)
+        {
+            try
+            {
+                string cleanName = procName.EndsWith(".exe") ? procName.Substring(0, procName.Length - 4) : procName;
+                var proc = Process.GetProcessesByName(cleanName).FirstOrDefault();
+                return proc?.Id ?? 0;
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         public void Dispose()

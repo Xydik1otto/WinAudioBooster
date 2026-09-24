@@ -1,0 +1,68 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <SolidColorBrush x:Key="RazerBg" Color="#1E1E2E"/>
+    <SolidColorBrush x:Key="RazerCardBg" Color="#181825"/>
+    <SolidColorBrush x:Key="RazerCardHeaderBg" Color="#313244"/>
+    <SolidColorBrush x:Key="RazerBorder" Color="#45475A"/>
+    <SolidColorBrush x:Key="RazerGreen" Color="#CBA6F7"/>
+    <SolidColorBrush x:Key="RazerTextMain" Color="#CDD6F4"/>
+    <SolidColorBrush x:Key="RazerTextMuted" Color="#A6ADC8"/>
+
+    <!-- Arch Кнопка -->
+    <Style x:Key="RazerButton" TargetType="Button">
+        <Setter Property="Background" Value="#313244"/>
+        <Setter Property="Foreground" Value="{StaticResource RazerTextMain}"/>
+        <Setter Property="BorderBrush" Value="#45475A"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#45475A"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource RazerGreen}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RazerPrimaryButton" TargetType="Button" BasedOn="{StaticResource RazerButton}">
+        <Setter Property="Background" Value="#453B64"/>
+        <Setter Property="Foreground" Value="#CBA6F7"/>
+    </Style>
+
+    <!-- Arch GroupBox -->
+    <Style TargetType="GroupBox">
+        <Setter Property="Background" Value="{StaticResource RazerCardBg}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource RazerBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{StaticResource RazerTextMain}"/>
+        <Setter Property="Margin" Value="0,0,0,12"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GroupBox">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Background="{StaticResource RazerCardHeaderBg}" CornerRadius="8,8,0,0" Padding="12,8">
+                                <ContentPresenter ContentSource="Header" TextElement.Foreground="{StaticResource RazerGreen}" TextElement.FontWeight="Bold"/>
+                            </Border>
+                            <ContentPresenter Grid.Row="1" Margin="{TemplateBinding Padding}"/>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

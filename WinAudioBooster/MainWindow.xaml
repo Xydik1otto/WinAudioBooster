@@ -47,6 +47,7 @@
                     <!-- App Mixer Toggle Button -->
                     <Button Grid.Column="1" Content="🎛️ Мікшер програм" Click="ToggleAppMixer_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,8,0"/>
                     <Button Grid.Column="2" x:Name="InstallCableButton" Content="{DynamicResource InstallCable_Btn}" Click="InstallCableButton_OnClick" Style="{StaticResource RazerPrimaryButton}"/>
+                    <Button Grid.Column="1" Content="🤖 Правила AI/Apps" Click="ToggleRulesEditor_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,8,0"/>
                 </Grid>
 
                 <!-- Quick Routing Toggle Group -->
@@ -211,6 +212,22 @@
                             </StackPanel>
                             <Button Grid.Column="1" x:Name="ChangeHotkeyButton" Content="Змінити" Click="ChangeHotkeyButton_OnClick" Style="{StaticResource RazerButton}" Padding="8,4" VerticalAlignment="Center"/>
                         </Grid>
+                        
+                        <!-- Theme Selection Row -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="Тема оформлення" Foreground="{StaticResource RazerTextMuted}" VerticalAlignment="Center" FontSize="12" Margin="0,0,12,0"/>
+                            <ComboBox Grid.Column="1" x:Name="ThemeComboBox" SelectionChanged="ThemeComboBox_OnSelectionChanged" HorizontalAlignment="Left" Width="160" Height="26">
+                                <ComboBoxItem Content="Studio Hardware"/>
+                                <ComboBoxItem Content="Arch Linux"/>
+                                <ComboBoxItem Content="Windows XP"/>
+                                <ComboBoxItem Content="Windows 11"/>
+                            </ComboBox>
+                        </Grid>
 
                         <!-- Language Switch -->
                         <Grid>
@@ -225,6 +242,9 @@
                                 <ComboBoxItem Content="{DynamicResource Language_English}" Tag="en-US"/>
                             </ComboBox>
                         </Grid>
+                        
+                        <!-- Update Check Button -->
+                        <Button x:Name="CheckUpdatesButton" Content="Перевірити оновлення" Click="CheckUpdatesButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,0,10" HorizontalAlignment="Stretch"/>
                     </StackPanel>
                 </GroupBox>
             </Grid>
@@ -274,6 +294,123 @@
                     </ScrollViewer>
 
                     <Button Grid.Row="2" Content="🔄 Оновити список процесів" Click="RefreshAppSessions_OnClick" Style="{StaticResource RazerPrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Center"/>
+                </Grid>
+            </Border>
+        </Border>
+        <!-- Animated AppDetector Rules Editor Overlay -->
+        <Border x:Name="RulesEditorOverlay" Background="#F00B0B0E" Visibility="Collapsed" Opacity="0">
+            <Border Background="{StaticResource RazerCardBg}" BorderBrush="{StaticResource RazerGreen}" BorderThickness="1.5" CornerRadius="12" Margin="20" Padding="16">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="0" Color="#00FF66" Opacity="0.3"/>
+                </Border.Effect>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Text="🤖 Редактор правил автовизначення програм" Foreground="{StaticResource RazerTextMain}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Content="✕ Закрити" Click="CloseRulesEditor_OnClick" Style="{StaticResource RazerButton}" HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <!-- Add Rule Form -->
+                    <GroupBox Grid.Row="1" Header="Додати або змінити правило для програми" Padding="10" Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Process ComboBox (Select running or type custom) -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Програма / Процес:" Foreground="{StaticResource RazerTextMuted}" FontSize="11" Margin="0,0,0,4"/>
+                            <ComboBox Grid.Row="1" Grid.Column="0" x:Name="ActiveProcessesComboBox" 
+                                      IsEditable="True" 
+                                      Height="28" 
+                                      Margin="0,0,8,0"
+                                      Background="#1A1A22" 
+                                      Foreground="{StaticResource RazerTextMain}" 
+                                      BorderBrush="{StaticResource RazerBorder}">
+                                <ComboBox.Resources>
+                                    <!-- Фіксуємо колір тексту для внутрішнього поля введення (TextBox) -->
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="{StaticResource RazerTextMain}"/>
+                                        <Setter Property="CaretBrush" Value="{StaticResource RazerGreen}"/>
+                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                    </Style>
+                                </ComboBox.Resources>
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="ComboBoxItem">
+                                        <Setter Property="Background" Value="#1A1A22"/>
+                                        <Setter Property="Foreground" Value="{StaticResource RazerTextMain}"/>
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
+                            </ComboBox>
+                            
+                            <!-- Preset ComboBox -->
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Авто-пресет:" Foreground="{StaticResource RazerTextMuted}" FontSize="11" Margin="0,0,0,4"/>
+                            <ComboBox Grid.Row="1" Grid.Column="1" x:Name="NewRulePresetCombo" Width="140" Height="28" Margin="0,0,0,0"/>
+
+                            <!-- Volume Slider for Rule -->
+                            <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,10,0,0">
+                                <Grid Margin="0,0,0,4">
+                                    <TextBlock Text="Індивідуальний рівень гучності (Boost):" Foreground="{StaticResource RazerTextMuted}" FontSize="11"/>
+                                    <TextBlock x:Name="RuleVolumeText" Text="100%" Foreground="{StaticResource RazerGreen}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Grid.Column="0" x:Name="RuleVolumeSlider" Minimum="0" Maximum="300" Value="100" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="RuleVolumeSlider_OnValueChanged" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Button Grid.Column="1" Content="Зберегти правило" Click="AddCustomRule_OnClick" Style="{StaticResource RazerPrimaryButton}" Height="28" Padding="12,4"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Rules List -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="RulesItemsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#1A1A22" BorderBrush="{StaticResource RazerBorder}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,6" Padding="10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="60"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" Text="{Binding ProcessName}" Foreground="{StaticResource RazerTextMain}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding TargetPresetName}" Foreground="{StaticResource RazerGreen}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding VolumePercent, StringFormat={}{0:F0}%}" Foreground="#00BCFF" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="3" Content="Видалити" Tag="{Binding ProcessName}" Click="DeleteRule_OnClick" Style="{StaticResource RazerButton}" Foreground="#FF5555" Padding="8,2"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Description Footer (Fixed clipping with TextWrapping) -->
+                    <TextBlock Grid.Row="3" Text="Принцип роботи: при запуску програми автоматично застосовується вказана гучність (до 300%) та пресет." 
+                               Foreground="{StaticResource RazerTextMuted}" 
+                               FontSize="11" 
+                               TextWrapping="Wrap" 
+                               TextAlignment="Center"
+                               Margin="0,10,0,0"/>
                 </Grid>
             </Border>
         </Border>

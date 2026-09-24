@@ -33,9 +33,11 @@ namespace WinAudioBooster
         private readonly AppVolumeService _appVolumeService = new();
         private readonly AutoStartService _autoStartService = new();
         private readonly HotkeyManager _hotkeyManager = new();
+        private readonly UpdateService _updateService = new();
 
         private CancellationTokenSource? _sliderDebounceCts;
         private CancellationTokenSource? _appVolumeDebounceCts;
+        private TrayService? _trayService;
         
         private MiniMixerWindow? _miniMixerWindow;
         public AudioEngine AudioEngineInstance => _audioEngine;
@@ -45,20 +47,30 @@ namespace WinAudioBooster
             InitializeComponent();
             Loaded += (s, e) =>
             {
-                // Реєструємо Ctrl + Alt + B (Віртуальна клавіша 'B' = 0x42)
                 _hotkeyManager.Register(this, HotkeyManager.ModControl | HotkeyManager.ModAlt, 0x42);
     
                 _hotkeyManager.HotkeyPressed += (sender, args) =>
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        // Перемикаємо стан чекбокса бустера
                         EnableBoosterCheckBox.IsChecked = !(EnableBoosterCheckBox.IsChecked == true);
                         RestartAudioEngineIfEnabled();
                         SaveCurrentSettings();
                     });
                 };
             };
+            _trayService = new TrayService(
+                this, 
+                () => { 
+                    EnableBoosterCheckBox.IsChecked = !(EnableBoosterCheckBox.IsChecked == true);
+                    RestartAudioEngineIfEnabled();
+                    SaveCurrentSettings();
+                }, 
+                () => { 
+                    _trayService?.Dispose();
+                    Environment.Exit(0); 
+                }
+            );
 
             LoadPhysicalOutputDevices();
             LoadSavedSettingsAndPresets();
@@ -79,6 +91,7 @@ namespace WinAudioBooster
                 Dispatcher.Invoke(() => RefreshPresetsList(presetName));
             };
         }
+
         private void AutoStartCheckBox_OnClick(object sender, RoutedEventArgs e)
         {
             bool isChecked = AutoStartCheckBox.IsChecked == true;
@@ -233,6 +246,16 @@ namespace WinAudioBooster
                     (!string.IsNullOrEmpty(settings.SelectedOutputDeviceName) && d.Name == settings.SelectedOutputDeviceName));
 
                 OutputDeviceComboBox.SelectedItem = savedDevice ?? physicalDevices[0];
+                
+            }
+            if (!string.IsNullOrEmpty(settings.SelectedTheme))
+            {
+                SelectCurrentThemeInComboBox(settings.SelectedTheme);
+                ThemeManager.ApplyTheme(settings.SelectedTheme);
+            }
+            else
+            {
+                ThemeManager.ApplyTheme("Razer Green");
             }
             if (settings.HotkeyModifiers != 0 && settings.HotkeyVKey != 0)
             {
@@ -247,19 +270,42 @@ namespace WinAudioBooster
             EnableBoosterCheckBox.IsChecked = settings.IsBoosterEnabled;
             UpdateAllUiTexts();
         }
+
         private void ChangeHotkeyButton_OnClick(object sender, RoutedEventArgs e)
         {
             _isListeningForHotkey = true;
             ChangeHotkeyButton.Content = "Натисніть комбінацію...";
             ChangeHotkeyButton.Foreground = (SolidColorBrush)FindResource("RazerGreen");
         }
+        private void SelectCurrentThemeInComboBox(string themeName)
+        {
+            foreach (ComboBoxItem item in ThemeComboBox.Items)
+            {
+                if (item.Content?.ToString() == themeName)
+                {
+                    ThemeComboBox.SelectedItem = item;
+                    break;
+                }
+            }
+        }
+
+        private void ThemeComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing) return;
+
+            if (ThemeComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Content?.ToString() is string themeName)
+            {
+                ThemeManager.ApplyTheme(themeName);
+                SaveCurrentSettings();
+            }
+        }
+
         protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
         {
             if (_isListeningForHotkey)
             {
                 e.Handled = true;
 
-                // Ігноруємо чисті модифікатори (Ctrl, Alt, Shift окремо без букви не приймаємо)
                 if (e.Key == System.Windows.Input.Key.LeftCtrl || e.Key == System.Windows.Input.Key.RightCtrl ||
                     e.Key == System.Windows.Input.Key.LeftAlt || e.Key == System.Windows.Input.Key.RightAlt ||
                     e.Key == System.Windows.Input.Key.LeftShift || e.Key == System.Windows.Input.Key.RightShift ||
@@ -276,7 +322,6 @@ namespace WinAudioBooster
 
                 int vKey = KeyInterop.VirtualKeyFromKey(e.Key == System.Windows.Input.Key.System ? e.SystemKey : e.Key);
 
-                // Реєструємо новий хоткей у системі
                 bool success = _hotkeyManager.Register(this, modifiers, (uint)vKey);
                 if (!success)
                 {
@@ -287,7 +332,6 @@ namespace WinAudioBooster
                     return;
                 }
 
-                // Формуємо текстову назву для відображення
                 string displayStr = "";
                 if (kbModifiers.HasFlag(System.Windows.Input.ModifierKeys.Control)) displayStr += "Ctrl + ";
                 if (kbModifiers.HasFlag(System.Windows.Input.ModifierKeys.Alt)) displayStr += "Alt + ";
@@ -299,13 +343,13 @@ namespace WinAudioBooster
                 ChangeHotkeyButton.ClearValue(ForegroundProperty);
                 _isListeningForHotkey = false;
 
-                // Зберігаємо нові параметри хоткея в AppSettings
                 SaveCurrentSettingsWithHotkey(modifiers, (uint)vKey, displayStr);
                 return;
             }
 
             base.OnPreviewKeyDown(e);
         }
+
         private void SaveCurrentSettingsWithHotkey(uint modifiers, uint vKey, string displayName)
         {
             var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
@@ -327,6 +371,89 @@ namespace WinAudioBooster
             };
 
             _settingsManager.SaveSettings(settings);
+        }
+
+        private void ToggleRulesEditor_OnClick(object sender, RoutedEventArgs e)
+        {
+            RefreshRulesEditorUI();
+            RulesEditorOverlay.Visibility = Visibility.Visible;
+            var fadeIn = new System.Windows.Media.Animation.DoubleAnimation { From = 0.0, To = 1.0, Duration = TimeSpan.FromMilliseconds(200) };
+            RulesEditorOverlay.BeginAnimation(OpacityProperty, fadeIn);
+        }
+
+        private void CloseRulesEditor_OnClick(object sender, RoutedEventArgs e)
+        {
+            var fadeOut = new System.Windows.Media.Animation.DoubleAnimation { From = 1.0, To = 0.0, Duration = TimeSpan.FromMilliseconds(150) };
+            fadeOut.Completed += (s, ev) => RulesEditorOverlay.Visibility = Visibility.Collapsed;
+            RulesEditorOverlay.BeginAnimation(OpacityProperty, fadeOut);
+        }
+        private void RuleVolumeSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (RuleVolumeText != null)
+            {
+                RuleVolumeText.Text = $"{e.NewValue:F0}%";
+            }
+        }
+
+        private void RefreshRulesEditorUI()
+        {
+            var settings = _settingsManager.LoadSettings();
+            RulesItemsControl.ItemsSource = settings.CustomRules;
+
+            // Заповнюємо список пресетів
+            var presets = _presetManager.LoadAllPresets();
+            NewRulePresetCombo.ItemsSource = presets;
+            NewRulePresetCombo.DisplayMemberPath = "Name";
+            if (presets.Count > 0) NewRulePresetCombo.SelectedIndex = 0;
+
+            // Заповнюємо випадаючий список запущених програм з вікнами
+            var runningApps = AppDetector.GetRunningAppsWithWindows();
+            ActiveProcessesComboBox.ItemsSource = runningApps;
+            if (runningApps.Count > 0) ActiveProcessesComboBox.SelectedIndex = 0;
+        }
+
+        private void AddCustomRule_OnClick(object sender, RoutedEventArgs e)
+        {
+            string procName = ActiveProcessesComboBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(procName)) return;
+
+            if (!procName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                procName += ".exe";
+            }
+
+            string presetName = (NewRulePresetCombo.SelectedItem as Preset)?.Name ?? "Light Boost";
+            double customVolume = RuleVolumeSlider.Value;
+
+            var settings = _settingsManager.LoadSettings();
+            settings.CustomRules.RemoveAll(r => r.ProcessName.Equals(procName, StringComparison.OrdinalIgnoreCase));
+    
+            settings.CustomRules.Add(new ProcessRule 
+            { 
+                ProcessName = procName, 
+                TargetPresetName = presetName, 
+                VolumePercent = customVolume,
+                Priority = 1 
+            });
+
+            _settingsManager.SaveSettings(settings);
+            _appDetector.UpdateCustomRules(settings.CustomRules);
+
+            RefreshRulesEditorUI();
+        }
+
+        private void DeleteRule_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string procName)
+            {
+                var settings = _settingsManager.LoadSettings();
+                settings.CustomRules.RemoveAll(r => r.ProcessName.Equals(procName, StringComparison.OrdinalIgnoreCase));
+        
+                _settingsManager.SaveSettings(settings);
+                _appDetector.UpdateCustomRules(settings.CustomRules);
+
+                RefreshRulesEditorUI();
+            }
         }
 
         private void InitializeAudio()
@@ -421,7 +548,7 @@ namespace WinAudioBooster
 
         private void InitializeVuTimer()
         {
-            _vuTimer.Interval = TimeSpan.FromMilliseconds(33); // 30 FPS без замирань
+            _vuTimer.Interval = TimeSpan.FromMilliseconds(33);
             _vuTimer.Tick += (s, e) =>
             {
                 if (_audioEngine.Dsp != null && EnableBoosterCheckBox.IsChecked == true)
@@ -650,6 +777,7 @@ namespace WinAudioBooster
                 GainDb = GainSlider.Value,
                 CompressorThresholdDb = CompThresholdSlider.Value,
                 CompressorRatio = CompRatioSlider.Value,
+                SelectedTheme = (ThemeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Razer Green",
                 LimiterCeilingDb = LimiterCeilingSlider.Value
             };
 
@@ -694,6 +822,38 @@ namespace WinAudioBooster
                 SaveCurrentSettings();
             }
         }
+        private async void CheckUpdatesButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            CheckUpdatesButton.IsEnabled = false;
+            CheckUpdatesButton.Content = "Перевірка оновлень...";
+
+            var (hasUpdate, version, url) = await _updateService.CheckForUpdatesAsync();
+
+            if (hasUpdate)
+            {
+                var result = MessageBox.Show(
+                    $"Знайдено нову версію програми ({version})!\n\nБажаєте відкрити сторінку завантаження у браузері?",
+                    "Оновлення WinAudioBooster",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+                    }
+                    catch { }
+                }
+            }
+            else
+            {
+                MessageBox.Show("У вас встановлена найновіша версія програми!", "Оновлення", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+
+            CheckUpdatesButton.IsEnabled = true;
+            CheckUpdatesButton.Content = "Перевірити оновлення";
+        }
 
         protected override void OnClosed(EventArgs e)
         {
@@ -702,6 +862,7 @@ namespace WinAudioBooster
             _sliderDebounceCts?.Cancel();
             _appVolumeDebounceCts?.Cancel();
             _hotkeyManager.Dispose();
+            _trayService?.Dispose();
             _volumeManager.Dispose();
             _appDetector.Dispose();
             _audioEngine.Dispose();

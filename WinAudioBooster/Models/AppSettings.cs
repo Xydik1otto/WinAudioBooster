@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using WinAudioBooster.Models;
+
 namespace WinAudioBooster.Models
 {
     public class AppSettings
@@ -13,9 +16,12 @@ namespace WinAudioBooster.Models
         public double CompressorRatio { get; set; } = 3.0;
         public double LimiterCeilingDb { get; set; } = -0.3;
 
-        // Налаштування глобального хоткею (За замовчуванням: Ctrl + Alt + B)
-        public uint HotkeyModifiers { get; set; } = 3; // ModControl (2) | ModAlt (1)
-        public uint HotkeyVKey { get; set; } = 0x42; // 'B'
+        public uint HotkeyModifiers { get; set; } = 3;
+        public uint HotkeyVKey { get; set; } = 0x42;
         public string HotkeyDisplayName { get; set; } = "Ctrl + Alt + B";
+        public string SelectedTheme { get; set; } = "Razer Green";
+
+        // Користувацькі правила для AppDetector
+        public List<ProcessRule> CustomRules { get; set; } = new();
     }
 }
