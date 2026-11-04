@@ -1,11 +1,11 @@
 ﻿<Application x:Class="WinAudioBooster.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             StartupUri="MainWindow.xaml">
+             StartupUri="/MainWindow/MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Themes/RazerGreen.xaml"/>
+                <ResourceDictionary Source="Themes/Skins/ArchLinux.xaml"/>
                 <ResourceDictionary Source="Resources/Strings.uk.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 

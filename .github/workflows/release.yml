@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore WinAudioBooster/WinAudioBooster.csproj
+
+      - name: Build
+        run: dotnet build WinAudioBooster/WinAudioBooster.csproj --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test WinAudioBooster/WinAudioBooster.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Test (test project, if present)
+        run: dotnet test WinAudioBooster.Tests/WinAudioBooster.Tests.csproj --configuration Release --verbosity normal
+        if: ${{ hashFiles('WinAudioBooster.Tests/WinAudioBooster.Tests.csproj') != '' }}
+
+      - name: Publish single-file win-x64
+        run: dotnet publish WinAudioBooster/WinAudioBooster.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+
+      - name: Upload artifact to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: WinAudioBooster/bin/Release/net8.0-windows/win-x64/publish/WinAudioBooster.exe
+          generate_release_notes: true

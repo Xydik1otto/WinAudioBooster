@@ -1,114 +1,124 @@
-using System;
-using NAudio.CoreAudioApi;
-using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
+namespace WinAudioBooster.Audio;
 
-namespace WinAudioBooster.Audio
+public class AudioEngine : IDisposable
 {
-    public class AudioEngine : IDisposable
+    private WasapiLoopbackCapture? _capture;
+    private WasapiOut? _output;
+    private BufferedWaveProvider? _waveBuffer;
+    private DspProcessor? _dspProcessor;
+    private MediaFoundationResampler? _resampler;
+
+    public DspProcessor? Dsp => _dspProcessor;
+    public bool IsRunning { get; private set; }
+
+    public event EventHandler<string>? ErrorOccurred;
+
+    public AudioEngine()
     {
-        private WasapiLoopbackCapture? _capture;
-        private WasapiOut? _output;
-        private BufferedWaveProvider? _waveBuffer;
-        private DspProcessor? _dspProcessor;
-        private MediaFoundationResampler? _resampler;
+        try { MediaFoundationApi.Startup(); } catch { }
+    }
 
-        public DspProcessor? Dsp => _dspProcessor;
-        public bool IsRunning { get; private set; }
+    public void Start(MMDevice captureCableDevice, MMDevice outputSpeakerDevice)
+    {
+        Stop();
 
-        public event EventHandler<string>? ErrorOccurred;
-
-        public void Start(MMDevice? captureDevice, MMDevice? outputDevice)
+        if (captureCableDevice == null || outputSpeakerDevice == null)
         {
-            Stop();
+            ErrorOccurred?.Invoke(this, "Не вибрано пристрій кабелю або фізичні динаміки.");
+            return;
+        }
 
-            if (outputDevice == null) return;
+        try
+        {
+            _capture = new WasapiLoopbackCapture(captureCableDevice);
 
-            try
+            _waveBuffer = new BufferedWaveProvider(_capture.WaveFormat)
             {
-                _capture = captureDevice != null 
-                    ? new WasapiLoopbackCapture(captureDevice) 
-                    : new WasapiLoopbackCapture();
+                DiscardOnBufferOverflow = true,
+                BufferDuration = TimeSpan.FromSeconds(2),
+                ReadFully = true
+            };
 
-                _waveBuffer = new BufferedWaveProvider(_capture.WaveFormat)
+            _capture.DataAvailable += (s, e) =>
+            {
+                if (_waveBuffer != null && e.BytesRecorded > 0)
                 {
-                    DiscardOnBufferOverflow = true,
-                    BufferDuration = TimeSpan.FromMilliseconds(500),
-                    ReadFully = true
-                };
-
-                _capture.DataAvailable += (s, e) =>
-                {
-                    if (_waveBuffer != null && e.BytesRecorded > 0)
-                    {
-                        _waveBuffer.AddSamples(e.Buffer, 0, e.BytesRecorded);
-                    }
-                };
-
-                ISampleProvider sampleProvider = _waveBuffer.ToSampleProvider();
-                _dspProcessor = new DspProcessor(sampleProvider);
-
-                var outputMixFormat = outputDevice.AudioClient.MixFormat;
-                IWaveProvider finalWaveProvider = _dspProcessor.ToWaveProvider();
-
-                if (_dspProcessor.WaveFormat.SampleRate != outputMixFormat.SampleRate ||
-                    _dspProcessor.WaveFormat.Channels != outputMixFormat.Channels)
-                {
-                    var targetFormat = new WaveFormat(outputMixFormat.SampleRate, 16, outputMixFormat.Channels);
-                    _resampler = new MediaFoundationResampler(finalWaveProvider, targetFormat)
-                    {
-                        ResamplerQuality = 30 // Баланс якості та швидкодії CPU
-                    };
-                    finalWaveProvider = _resampler;
+                    _waveBuffer.AddSamples(e.Buffer, 0, e.BytesRecorded);
                 }
+            };
 
-                // Низька затримка буфера 40 мс без тріску
-                _output = new WasapiOut(outputDevice, AudioClientShareMode.Shared, false, 40);
-                _output.Init(finalWaveProvider);
+            ISampleProvider sampleProvider = _waveBuffer.ToSampleProvider();
+            _dspProcessor = new DspProcessor(sampleProvider);
 
-                _output.Play();
-                _capture.StartRecording();
+            var outputMixFormat = outputSpeakerDevice.AudioClient.MixFormat;
+            IWaveProvider finalWaveProvider;
 
-                IsRunning = true;
-            }
-            catch (Exception ex)
+            if (_dspProcessor.WaveFormat.SampleRate != outputMixFormat.SampleRate ||
+                _dspProcessor.WaveFormat.Channels != outputMixFormat.Channels)
             {
-                Stop();
-                ErrorOccurred?.Invoke(this, $"Помилка аудіопотоку: {ex.Message}");
+                _resampler = new MediaFoundationResampler(_dspProcessor.ToWaveProvider(), outputMixFormat)
+                {
+                    ResamplerQuality = 30
+                };
+                finalWaveProvider = _resampler;
             }
+            else if (outputMixFormat.BitsPerSample == 16)
+            {
+                finalWaveProvider = new SampleToWaveProvider16(_dspProcessor);
+            }
+            else
+            {
+                finalWaveProvider = _dspProcessor.ToWaveProvider();
+            }
+
+            _output = new WasapiOut(outputSpeakerDevice, AudioClientShareMode.Shared, false, 50);
+            _output.PlaybackStopped += (s, e) =>
+            {
+                if (e.Exception != null)
+                    ErrorOccurred?.Invoke(this, $"Помилка відтворення WASAPI: {e.Exception.Message}");
+            };
+
+            _output.Init(finalWaveProvider);
+
+            _capture.StartRecording();
+            _output.Play();
+
+            IsRunning = true;
         }
-
-        public void Stop()
-        {
-            IsRunning = false;
-
-            if (_capture != null)
-            {
-                try { _capture.StopRecording(); } catch { }
-                _capture.Dispose();
-                _capture = null;
-            }
-
-            if (_output != null)
-            {
-                try { _output.Stop(); } catch { }
-                _output.Dispose();
-                _output = null;
-            }
-
-            if (_resampler != null)
-            {
-                _resampler.Dispose();
-                _resampler = null;
-            }
-
-            _waveBuffer = null;
-            _dspProcessor = null;
-        }
-
-        public void Dispose()
+        catch (Exception ex)
         {
             Stop();
+            ErrorOccurred?.Invoke(this, $"Помилка ініціалізації WASAPI: {ex.Message}");
         }
     }
+
+    public void Stop()
+    {
+        IsRunning = false;
+
+        if (_capture != null)
+        {
+            try { _capture.StopRecording(); } catch { }
+            _capture.Dispose();
+            _capture = null;
+        }
+
+        if (_output != null)
+        {
+            try { _output.Stop(); } catch { }
+            _output.Dispose();
+            _output = null;
+        }
+
+        if (_resampler != null)
+        {
+            _resampler.Dispose();
+            _resampler = null;
+        }
+
+        _waveBuffer = null;
+        _dspProcessor = null;
+    }
+
+    public void Dispose() => Stop();
 }

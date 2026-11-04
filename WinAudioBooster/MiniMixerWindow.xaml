@@ -55,7 +55,10 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <CheckBox x:Name="MiniBoosterToggle" Content="Booster" Foreground="#CDD6F4" FontSize="11" VerticalAlignment="Center" Click="MiniBoosterToggle_OnClick"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox x:Name="MiniBoosterToggle" Content="Booster" Foreground="#CDD6F4" FontSize="11" VerticalAlignment="Center" Click="MiniBoosterToggle_OnClick"/>
+                    <CheckBox x:Name="MiniEqToggle" Content="EQ" Foreground="#CDD6F4" FontSize="11" VerticalAlignment="Center" Margin="12,0,0,0" Click="MiniEqToggle_OnClick"/>
+                </StackPanel>
                 <Button Grid.Column="1" Click="ExpandButton_OnClick" Content="⚙ Налаштування" Background="#313244" Foreground="#CDD6F4" BorderThickness="0" Padding="8,4" FontSize="11" Cursor="Hand">
                     <Button.Resources>
                         <Style TargetType="Border">

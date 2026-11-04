@@ -1,128 +1,69 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Win32;
-using NAudio.CoreAudioApi;
+namespace WinAudioBooster.Audio;
 
-namespace WinAudioBooster.Audio
+public class AudioDeviceInfo
 {
-    public class AudioDeviceInfo
-    {
-        public string Id { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public MMDevice Device { get; set; } = null!;
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public MMDevice Device { get; set; } = null!;
 
-        public override string ToString() => Name;
+    public override string ToString() => Name;
+}
+
+public class DeviceManager
+{
+    public MMDevice? FindCableDevice()
+    {
+        try
+        {
+            using var enumerator = new MMDeviceEnumerator();
+            return enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
+                             .FirstOrDefault(IsCableMatch);
+        }
+        catch { return null; }
     }
 
-    public class DeviceManager
+    public MMDevice? GetDefaultRenderDevice()
     {
-        public bool IsCableInstalled()
+        try
         {
-            try
-            {
-                using var mediaClassKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}");
-                if (mediaClassKey != null)
-                {
-                    foreach (var subkeyName in mediaClassKey.GetSubKeyNames())
-                    {
-                        using var subkey = mediaClassKey.OpenSubKey(subkeyName);
-                        if (subkey != null)
-                        {
-                            string driverDesc = subkey.GetValue("DriverDesc")?.ToString() ?? "";
-                            string providerName = subkey.GetValue("ProviderName")?.ToString() ?? "";
-
-                            if (driverDesc.Contains("VB-Audio", StringComparison.OrdinalIgnoreCase) ||
-                                driverDesc.Contains("CABLE", StringComparison.OrdinalIgnoreCase) ||
-                                providerName.Contains("VB-Audio", StringComparison.OrdinalIgnoreCase))
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
-
-            try
-            {
-                using var enumerator = new MMDeviceEnumerator();
-                var allDevices = enumerator.EnumerateAudioEndPoints(DataFlow.All, DeviceState.All);
-                return allDevices.Any(IsCableMatch);
-            }
-            catch
-            {
-                return false;
-            }
+            using var enumerator = new MMDeviceEnumerator();
+            return enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
         }
+        catch { return null; }
+    }
 
-        /// <summary>
-        /// Пошук віртуального кабелю CABLE Input (звідки програма захоплює системний звук).
-        /// </summary>
-        public MMDevice? FindCableDevice()
+    public List<AudioDeviceInfo> GetPhysicalOutputDevices()
+    {
+        try
         {
-            try
-            {
-                using var enumerator = new MMDeviceEnumerator();
-                var outputDevices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-
-                return outputDevices.FirstOrDefault(IsCableMatch);
-            }
-            catch
-            {
-                return null;
-            }
+            using var enumerator = new MMDeviceEnumerator();
+            return enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
+                .Where(d => !IsCableMatch(d))
+                .Select(d => new AudioDeviceInfo { Id = d.ID, Name = d.FriendlyName, Device = d })
+                .ToList();
         }
+        catch { return new List<AudioDeviceInfo>(); }
+    }
 
-        /// <summary>
-        /// Отримує поточний системний пристрій відтворення за замовчуванням у Windows.
-        /// </summary>
-        public MMDevice? GetDefaultRenderDevice()
+    public bool IsCableInstalled()
+    {
+        try
         {
-            try
-            {
-                using var enumerator = new MMDeviceEnumerator();
-                return enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-            }
-            catch
-            {
-                return null;
-            }
+            using var enumerator = new MMDeviceEnumerator();
+            return enumerator.EnumerateAudioEndPoints(DataFlow.All, DeviceState.Active).Any(IsCableMatch);
         }
+        catch { return false; }
+    }
 
-        /// <summary>
-        /// Отримує список тільки реальних ФІЗИЧНИХ пристроїв відтворення (динаміки, навушники, HDMI).
-        /// </summary>
-        public List<AudioDeviceInfo> GetPhysicalOutputDevices()
-        {
-            try
-            {
-                using var enumerator = new MMDeviceEnumerator();
-                var outputDevices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+    private static bool IsCableMatch(MMDevice device)
+    {
+        if (device == null) return false;
+        string name = string.Empty;
+        try { name = device.FriendlyName; } catch { return false; }
+        if (string.IsNullOrEmpty(name)) return false;
 
-                return outputDevices
-                    .Where(d => !IsCableMatch(d))
-                    .Select(d => new AudioDeviceInfo
-                    {
-                        Id = d.ID,
-                        Name = d.FriendlyName,
-                        Device = d
-                    })
-                    .ToList();
-            }
-            catch
-            {
-                return new List<AudioDeviceInfo>();
-            }
-        }
-
-        private static bool IsCableMatch(MMDevice device)
-        {
-            if (device == null || string.IsNullOrEmpty(device.FriendlyName)) return false;
-            string name = device.FriendlyName;
-            return name.Contains("CABLE", StringComparison.OrdinalIgnoreCase) ||
-                   name.Contains("VB-Audio", StringComparison.OrdinalIgnoreCase) ||
-                   name.Contains("Virtual Cable", StringComparison.OrdinalIgnoreCase);
-        }
+        return name.Contains("CABLE", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("VB-Audio", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("Virtual Cable", StringComparison.OrdinalIgnoreCase);
     }
 }

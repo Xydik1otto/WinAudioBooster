@@ -36,6 +36,10 @@
     <sys:String x:Key="Limiter_Group">Limiter</sys:String>
     <sys:String x:Key="Ceiling_Label">Ceiling, dB</sys:String>
 
+    <sys:String x:Key="Eq_Group">Equalizer</sys:String>
+    <sys:String x:Key="Eq_Enable">Enable equalizer</sys:String>
+    <sys:String x:Key="Eq_Reset">Reset</sys:String>
+
     <sys:String x:Key="VuMeters_Group">Signal Levels (VU)</sys:String>
     <sys:String x:Key="Vu_Input">Input:</sys:String>
     <sys:String x:Key="Vu_Output">Output:</sys:String>

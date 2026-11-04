@@ -1,39 +1,36 @@
-using System;
-using System.IO;
 using System.Text.Json;
 
-namespace WinAudioBooster.Utils
+namespace WinAudioBooster.Utils;
+
+public static class JsonHelper
 {
-    public static class JsonHelper
+    private static readonly JsonSerializerOptions Options = new()
     {
-        private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNameCaseInsensitive = true
-        };
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true
+    };
 
-        public static T? ReadJson<T>(string filePath)
+    public static T? ReadJson<T>(string filePath)
+    {
+        try
         {
-            try
-            {
-                if (!File.Exists(filePath)) return default;
-                string json = File.ReadAllText(filePath);
-                return JsonSerializer.Deserialize<T>(json, Options);
-            }
-            catch
-            {
-                return default;
-            }
+            if (!File.Exists(filePath)) return default;
+            string json = File.ReadAllText(filePath);
+            return JsonSerializer.Deserialize<T>(json, Options);
         }
+        catch
+        {
+            return default;
+        }
+    }
 
-        public static void WriteJson<T>(string filePath, T data)
+    public static void WriteJson<T>(string filePath, T data)
+    {
+        try
         {
-            try
-            {
-                string json = JsonSerializer.Serialize(data, Options);
-                File.WriteAllText(filePath, json);
-            }
-            catch { }
+            string json = JsonSerializer.Serialize(data, Options);
+            File.WriteAllText(filePath, json);
         }
+        catch { }
     }
 }

@@ -1,0 +1,60 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Publish output
+publish/
+[Pp]ublish/
+
+# Visual Studio / Rider / VS Code user files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+.idea/
+.vs/
+.vscode/
+
+# Build artifacts
+*.binlog
+msbuild.log
+Artifacts/
+
+# Test results
+[Tt]est[Rr]esult*/
+[Tt]est[Rr]esults*/
+*.trx
+coverage*.xml
+*.coverage
+
+# NuGet
+*.nupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+
+# Windows image / installer leftovers
+*.msi
+*.iss.bak
+[Dd]ebugPS/
+*.rdl.data
+*.bim.layout
+*.bim_*.settings
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IMPORTANT: VBCABLE_Driver_Pack45.zip у корені НЕ ігноруємо —
+# він використовується вбудованим інсталятором VB-Cable (Services/VbCableInstaller.cs)
+!VBCABLE_Driver_Pack45.zip
+!WinAudioBooster/VBCABLE_Driver_Pack45.zip
+
+# Rider build artifacts
+.build/

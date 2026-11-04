@@ -36,6 +36,10 @@
     <sys:String x:Key="Limiter_Group">Лімітер</sys:String>
     <sys:String x:Key="Ceiling_Label">Стеля (Ceiling), dB</sys:String>
 
+    <sys:String x:Key="Eq_Group">Еквалайзер</sys:String>
+    <sys:String x:Key="Eq_Enable">Увімкнути еквалайзер</sys:String>
+    <sys:String x:Key="Eq_Reset">Скинути</sys:String>
+
     <sys:String x:Key="VuMeters_Group">Рівні сигналу (VU)</sys:String>
     <sys:String x:Key="Vu_Input">Вхід:</sys:String>
     <sys:String x:Key="Vu_Output">Вихід:</sys:String>
