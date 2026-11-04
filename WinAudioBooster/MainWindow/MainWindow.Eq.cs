@@ -91,6 +91,51 @@ public partial class MainWindow
         if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
     }
 
+    // Другий рядок швидких DSP-тогглів: Loudness / Stereo width / Crossfeed / Mono (за Tag)
+    private void DspSpatialToggle_OnChecked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not CheckBox checkBox) return;
+        bool isChecked = checkBox.IsChecked == true;
+
+        if (_audioEngine.Dsp != null)
+        {
+            switch (checkBox.Tag as string)
+            {
+                case "Loudness":
+                    _audioEngine.Dsp.IsLoudnessNormalizationEnabled = isChecked;
+                    break;
+                case "StereoWidth":
+                    _audioEngine.Dsp.IsStereoWidenEnabled = isChecked;
+                    break;
+                case "Crossfeed":
+                    _audioEngine.Dsp.IsCrossfeedEnabled = isChecked;
+                    break;
+                case "Mono":
+                    _audioEngine.Dsp.IsMonoEnabled = isChecked;
+                    break;
+            }
+        }
+
+        if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
+    }
+
+    // Слайдер Balance (-1..1): від'ємні — вліво (L), додатні — вправо (R), 0 — центр
+    private void BalanceSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (BalanceValueText != null) BalanceValueText.Text = FormatBalance(e.NewValue);
+        if (_audioEngine?.Dsp != null) _audioEngine.Dsp.Balance = (float)e.NewValue;
+
+        if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
+    }
+
+    // Текстове значення балансу: «0» по центру, інакше «L 40%» / «R 40%»
+    private static string FormatBalance(double value)
+    {
+        return Math.Abs(value) < 0.05
+            ? "0"
+            : $"{(value < 0 ? "L" : "R")} {Math.Abs(value) * 100:F0}%";
+    }
+
     // Застосовує збережені DSP-тоггли до чекбоксів та DSP (викликається зі LoadSavedSettingsAndPresets)
     private void ApplyBoostTogglesToDsp(AppSettings settings)
     {
@@ -103,6 +148,25 @@ public partial class MainWindow
             _audioEngine.Dsp.IsBassBoostEnabled = settings.IsBassBoostEnabled;
             _audioEngine.Dsp.IsTrebleBoostEnabled = settings.IsTrebleBoostEnabled;
             _audioEngine.Dsp.IsSubBassFilterEnabled = settings.IsSubBassFilterEnabled;
+        }
+    }
+
+    // Застосовує просторові DSP-тоггли та Balance (викликається зі LoadSavedSettingsAndPresets)
+    private void ApplySpatialTogglesToDsp(AppSettings settings)
+    {
+        LoudnessCheckBox.IsChecked = settings.IsLoudnessNormalizationEnabled;
+        StereoWidthCheckBox.IsChecked = settings.IsStereoWidenEnabled;
+        CrossfeedCheckBox.IsChecked = settings.IsCrossfeedEnabled;
+        MonoCheckBox.IsChecked = settings.IsMonoEnabled;
+        BalanceSlider.Value = settings.Balance;
+
+        if (_audioEngine.Dsp != null)
+        {
+            _audioEngine.Dsp.IsLoudnessNormalizationEnabled = settings.IsLoudnessNormalizationEnabled;
+            _audioEngine.Dsp.IsStereoWidenEnabled = settings.IsStereoWidenEnabled;
+            _audioEngine.Dsp.IsCrossfeedEnabled = settings.IsCrossfeedEnabled;
+            _audioEngine.Dsp.IsMonoEnabled = settings.IsMonoEnabled;
+            _audioEngine.Dsp.Balance = (float)settings.Balance;
         }
     }
 

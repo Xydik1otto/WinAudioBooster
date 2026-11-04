@@ -4,11 +4,15 @@ public partial class MiniMixerWindow : Window
 {
     private readonly MainWindow _mainWindow;
     private readonly DispatcherTimer _vuTimer = new();
+    private readonly OutputPeakHistoryVisualizer _spectrumVisualizer;
 
     public MiniMixerWindow(MainWindow mainWindow)
     {
         InitializeComponent();
         _mainWindow = mainWindow;
+
+        // Візуалізатор історії піків виходу (32 бари, оновлюється у _vuTimer)
+        _spectrumVisualizer = new OutputPeakHistoryVisualizer(MiniSpectrumCanvas);
 
         var desktopWorkingArea = SystemParameters.WorkArea;
         Left = desktopWorkingArea.Right - Width - 10;
@@ -31,7 +35,9 @@ public partial class MiniMixerWindow : Window
         _vuTimer.Interval = TimeSpan.FromMilliseconds(30);
         _vuTimer.Tick += (s, e) =>
         {
-            if (_mainWindow.AudioEngineInstance.Dsp != null && _mainWindow.EnableBoosterCheckBox.IsChecked == true)
+            bool boosterEnabled = _mainWindow.EnableBoosterCheckBox.IsChecked == true;
+
+            if (_mainWindow.AudioEngineInstance.Dsp != null && boosterEnabled)
             {
                 MiniVuBar.Value = _mainWindow.AudioEngineInstance.Dsp.OutputMeter.CurrentLevel;
             }
@@ -39,6 +45,9 @@ public partial class MiniMixerWindow : Window
             {
                 MiniVuBar.Value = 0;
             }
+
+            // Історія піків у тому ж кадрі; при вимкненому DSP пишуться нулі
+            _spectrumVisualizer.Push(_mainWindow.AudioEngineInstance.Dsp?.OutputMeter.CurrentLevel ?? 0, boosterEnabled);
         };
         _vuTimer.Start();
     }

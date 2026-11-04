@@ -27,10 +27,15 @@ WinAudioBooster — WPF-додаток (.NET 8, C#) на бібліотеках 
             ▼
  ┌─────────────────────┐
  │  DspProcessor        │  ISampleProvider, обробка по семплах:
- │  1. Gain (до +300%)  │     gain → EQ 10 смуг → компресор →
- │  2. EQ 10 смуг       │     м'який лімітер (ceiling)
- │  3. Компресор        │     LevelMeter: вхідний/вихідний рівні
- │  4. М'який лімітер   │
+ │  1. Gain (до +300%)  │     gain → EQ 10 смуг → boost shelves →
+ │  2. EQ 10 смуг       │     widen (M/S) → crossfeed →
+ │  3. Boost shelves    │     balance/mono → компресор →
+ │  4. Stereo widening  │     loudness AGC (RMS) →
+ │  5. Crossfeed        │     м'який лімітер (ceiling)
+ │  6. Balance / Mono   │     LevelMeter: вхідний/вихідний рівні,
+ │  7. Компресор        │     FFT-спектр для візуалізатора
+ │  8. Loudness AGC     │
+ │  9. М'який лімітер   │
  └──────────┬──────────┘
             │  ресемплінг під формат пристрою
             ▼
@@ -53,7 +58,7 @@ WinAudioBooster — WPF-додаток (.NET 8, C#) на бібліотеках 
 1. **Автоперемикання** — `Utils.AudioDeviceSwitcher` через COM-інтерфейс `IPolicyConfig` призначає «CABLE Input» пристроєм за замовчуванням для ролей Console/Multimedia/Communications. При зупинці повертає попередній пристрій.
 2. **Захоплення** — `WasapiLoopbackCapture(captureCableDevice)` знімає loopback-потік із віртуального кабелю.
 3. **Буферизація** — `BufferedWaveProvider` згладжує нерівномірність надходження даних (буфер 2 секунди, при переповненні старі дані відкидаються).
-4. **DSP** — `Audio.DspProcessor` реалізує `ISampleProvider` і прогоняє кожен семпл через ланцюг: підсилення (gain, до 300% → понад 0 дБFS), еквалайзер, динамічний компресор (порог/співвідношення/атака/відновлення) та м'який лімітер (обмежує піки на заданій стелі, за замовчуванням −0.3 дБ). Вбудовані `LevelMeter` віддають рівні для індикаторів UI.
+4. **DSP** — `Audio.DspProcessor` реалізує `ISampleProvider` і прогоняє кожен семпл через ланцюг: підсилення (gain, до 300% → понад 0 дБFS), еквалайзер, boost shelves (Bass/Treble Boost), stereo widening (M/S-розширення панорами), crossfeed (затримка/змішування протилежного каналу для навушників), balance/mono, динамічний компресор (порог/співвідношення/атака/відновлення), loudness normalization (RMS AGC — утримує цільовий рівень) та м'який лімітер (обмежує піки на заданій стелі, за замовчуванням −0.3 дБ). Вбудовані `LevelMeter` віддають рівні для індикаторів UI, а FFT-спектр — для спектр-візуалізатора (з історією піків).
 5. **Вивід** — якщо формат після DSP не збігається з `MixFormat` фізичного пристрою, працює `MediaFoundationResampler`; далі `WasapiOut` у shared-режимі відтворює звук.
 
 ## Шари
@@ -61,8 +66,8 @@ WinAudioBooster — WPF-додаток (.NET 8, C#) на бібліотеках 
 | Шар / папка | Відповідальність |
 |---|---|
 | `Audio/` | Аудіо-ядро: рушій, DSP, керування пристроями, вимірювання рівнів |
-| `Services/` | Служби застосунку: налаштування, пресети, теми, трей, хоткеї, автозапуск, інсталятор VB-Cable, перевірка оновлень, детектор/мікшер додатків |
-| `Models/` | POCO-моделі даних: `AppSettings`, `Preset`, `ProcessRule`, `AppSessionInfo` |
+| `Services/` | Служби застосунку: налаштування, пресети, теми, трей, хоткеї, автозапуск, інсталятор VB-Cable, перевірка/завантаження оновлень, файл-лог, детектор/мікшер додатків |
+| `Models/` | POCO-моделі даних: `AppSettings`, `Preset`, `ProcessRule`, `AppVolumeRule`, `DevicePresetBinding`, `AppSessionInfo` |
 | `Utils/` | Допоміжні утиліти: перемикач пристроїв (COM), JSON, культура/мова |
 | `Converters/` | WPF-конвертери для UI (колір/видимість за рівнем gain) |
 | `MainWindow/` | Головне вікно — **partial-клас**, розбитий за функціями |
@@ -81,6 +86,11 @@ WinAudioBooster — WPF-додаток (.NET 8, C#) на бібліотеках 
 | `MainWindow.Settings.cs` | Панель налаштувань, мова, тема, автозапуск, хоткеї |
 | `MainWindow.Presets.cs` | Список пресетів, створення/перейменування/видалення |
 | `MainWindow.AppMixer.cs` | Мікшер додатків: перелік процесів, правила гучності |
+| `MainWindow.Profiles.cs` | Автопрофілі пристроїв: прив'язка «пристрій виводу → пресет» |
+| `MainWindow.SleepTimer.cs` | Таймер сну: 15/30/60 хв, плавний fade-out |
+| `MainWindow.Spectrum.cs` | Спектр-візуалізатор: FFT-спектр з історією піків |
+
+Керування `UpdateService` (перевірка та завантаження оновлень) і логування через `LoggingService` виконується з `MainWindow.Settings.cs` / `App.xaml.cs` відповідно.
 
 ## Схема файлів
 
@@ -115,13 +125,16 @@ WinAudioBooster/
     │   ├── HotkeyManager.cs             # Глобальні гарячі клавіші (RegisterHotKey)
     │   ├── AutoStartService.cs          # Автозапуск з Windows
     │   ├── VbCableInstaller.cs          # Встановлення VB-Cable (локальний zip або завантаження)
-    │   ├── UpdateService.cs             # Перевірка оновлень через GitHub Releases API
+    │   ├── UpdateService.cs             # Оновлення через GitHub Releases API: перевірка + завантаження exe з перевіркою SHA256, бекап `.bak`, авто-перезапуск
+    │   ├── LoggingService.cs            # Файловий лог у %APPDATA%\WinAudioBooster\log.txt (діагностика)
     │   ├── AppDetector.cs               # Виявлення запущених додатків (сесії аудіо)
     │   └── AppVolumeService.cs          # Індивідуальна гучність додатків (ISimpleAudioVolume)
     ├── Models/
     │   ├── AppSettings.cs               # Стан додатка (gain, компресор, лімітер, тема, мова, хоткей)
     │   ├── Preset.cs                    # Пресет: gain, поріг/співвідношення компресора, стеля лімітера
     │   ├── ProcessRule.cs               # Правило гучності для процесу (мікшер додатків)
+    │   ├── AppVolumeRule.cs             # Персистентне правило гучності per-app (пам'ять між сесіями)
+    │   ├── DevicePresetBinding.cs       # Автопрофіль: прив'язка «пристрій виводу → пресет»
     │   └── AppSessionInfo.cs            # Інформація про аудіо-сесію додатка
     ├── Utils/
     │   ├── AudioDeviceSwitcher.cs       # IPolicyConfig: set/restore default device
@@ -137,7 +150,8 @@ WinAudioBooster/
     │   ├── Win11Fluent.xaml             # Тема «Windows 11»
     │   ├── ArchLinux.xaml               # Тема «Arch Linux»
     │   ├── WindowsXP.xaml               # Тема «Windows XP»
-    │   └── StudioRack.xaml              # Тема «StudioRack» (за замовчуванням)
+    │   ├── StudioRack.xaml              # Тема «StudioRack» (за замовчуванням)
+    │   └── LightOverlay.xaml            # Світлий overlay для режиму «Auto (Windows)»
     ├── Resources/
     │   ├── Strings.uk.xaml              # Українська локалізація
     │   └── Strings.en.xaml              # Англійська локалізація

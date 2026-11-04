@@ -3,7 +3,8 @@ using NAudio.Dsp;
 namespace WinAudioBooster.Audio;
 
 /// <summary>
-/// DSP-ланцюжок: посилення -> 10-смуговий еквалайзер -> компресор -> м'який tanh-лімітер.
+/// DSP-ланцюжок: посилення -> 10-смуговий еквалайзер -> тон-корекції ->
+/// stereo widen -> crossfeed -> mono/balance -> компресор -> loudness normalization (AGC) -> лімітер.
 /// Обробка виконується по фреймах (з урахуванням кількості каналів WaveFormat.Channels),
 /// щоб стерео/мультиканальний сигнал оброблявся коректно.
 /// </summary>
@@ -264,6 +265,265 @@ public class DspProcessor : ISampleProvider
 
     #endregion
 
+    #region Loudness normalization (спрощений EBU R128, RMS-based AGC)
+
+    // Однополюсний згладжувач RMS з постійною часу ~1 с — значно повільніше за
+    // компресор, щоб нормалізація не пульсувала слідом за музикою.
+    private const float AgcTimeConstantSeconds = 1.0f;
+    private const float AgcTargetRms = 0.12f;          // цільовий RMS (лінійний), ~ -18 дБFS
+    private const float AgcMaxBoostDb = 12f;           // межа підйому: +12 дБ
+    private const float AgcMaxCutDb = 6f;              // межа притискання: -6 дБ
+    private const float AgcSlewRateDbPerSecond = 5f;   // гейн рухається не швидше за 5 дБ/с
+    private const float AgcMinRms = 1e-6f;             // підлога для логарифмування
+
+    private bool _isLoudnessNormalizationEnabled;
+    private float _agcRms;     // згладжений RMS (лінійний) сигналу на вході AGC
+    private float _agcGainDb;  // поточний гейн AGC (дБ), з slew limiting
+
+    /// <summary>
+    /// Авто-гейн за цільовим RMS (спрощений EBU R128): повільно підтягує
+    /// короткочасний рівень до ~0.12 (≈ -18 дБFS). Працює ПІСЛЯ всіх інших
+    /// стадій (перед лімітером), додаючи власний множник поверх ручного GainDb.
+    /// Корекція обмежена +12/-6 дБ і рухається плавно (≤5 дБ/с), тому не дає
+    /// стрибків гучності. При вимкненні гейн плавно повертається до 1.
+    /// </summary>
+    public bool IsLoudnessNormalizationEnabled
+    {
+        get => _isLoudnessNormalizationEnabled;
+        set
+        {
+            if (_isLoudnessNormalizationEnabled == value) return;
+            _isLoudnessNormalizationEnabled = value;
+            // Після увімкнення починаємо вимірювання рівня з нуля (застаріла
+            // огинаюча дала б неправильну корекцію). Гейн НЕ скидаємо — він
+            // плавно прийде до цілі зі slew limiting, без стрибка.
+            _agcRms = 0f;
+        }
+    }
+
+    /// <summary>Цільовий RMS-рівень у дБ (спрощено замість повноцінного LUFS).</summary>
+    public float LoudnessTargetDb { get; set; } = (float)(20 * Math.Log10(AgcTargetRms));
+
+    /// <summary>
+    /// Рухає гейн AGC до цілі з обмеженням швидкості (5 дБ/с) і повертає
+    /// лінійний множник. targetDb &lt; 0 означає відсутність цілі (AGC вимкнено) —
+    /// тоді гейн плавно повертається до 0 дБ (єдениці).
+    /// </summary>
+    private float AdvanceAgcSlew(float? targetDb, float stepDb)
+    {
+        float target = targetDb ?? 0f;
+        float delta = target - _agcGainDb;
+        if (Math.Abs(delta) <= stepDb)
+        {
+            _agcGainDb = target;
+        }
+        else
+        {
+            _agcGainDb += Math.Sign(delta) * stepDb;
+        }
+
+        return (float)Math.Pow(10, _agcGainDb / 20.0);
+    }
+
+    #endregion
+
+    #region Crossfeed (для навушників)
+
+    // Класичний crossfeed: у кожен канал підмішується копія протилежного каналу,
+    // затримана на ~0.3 мс, пропущена через LPF ~700 Гц і змішана на ~25%.
+    public const float CrossfeedDelaySeconds = 0.0003f;
+    public const float CrossfeedFrequencyHz = 700f;
+    public const float CrossfeedMix = 0.25f;
+    private const float CrossfeedLowPassQ = 0.7f;
+
+    private bool _isCrossfeedEnabled;
+    private BiQuadFilter[] _crossfeedFilters = Array.Empty<BiQuadFilter>(); // [канал 0/1] — LPF ~700 Гц
+    private float[] _crossfeedDelayL = Array.Empty<float>(); // кільцевий буфер затримки лівого каналу
+    private float[] _crossfeedDelayR = Array.Empty<float>(); // кільцевий буфер затримки правого каналу
+    private int _crossfeedDelayPos;
+    private int _crossfeedSampleRate = -1;
+    private bool _crossfeedDirty = true;
+
+    /// <summary>
+    /// Crossfeed для навушників: протилежний канал (затримка ~0.3 мс + LPF ~700 Гц)
+    /// підмішується на ~30%. Для моно — no-op.
+    /// </summary>
+    public bool IsCrossfeedEnabled
+    {
+        get => _isCrossfeedEnabled;
+        set
+        {
+            if (_isCrossfeedEnabled == value) return;
+            _isCrossfeedEnabled = value;
+            _crossfeedDirty = true; // перестворюємо фільтри та чистимо лінії затримки
+        }
+    }
+
+    private void RebuildCrossfeed(int sampleRate)
+    {
+        if (sampleRate <= 0) return;
+
+        int delaySamples = Math.Max(1, (int)MathF.Round(sampleRate * CrossfeedDelaySeconds));
+        _crossfeedDelayL = new float[delaySamples];
+        _crossfeedDelayR = new float[delaySamples];
+        _crossfeedDelayPos = 0;
+
+        float cutoff = Math.Min(CrossfeedFrequencyHz, sampleRate * 0.45f);
+        _crossfeedFilters = new[]
+        {
+            BiQuadFilter.LowPassFilter(sampleRate, cutoff, CrossfeedLowPassQ),
+            BiQuadFilter.LowPassFilter(sampleRate, cutoff, CrossfeedLowPassQ),
+        };
+        _crossfeedSampleRate = sampleRate;
+        _crossfeedDirty = false;
+    }
+
+    /// <summary>Гарантує, що crossfeed-фільтри та затримки відповідають частоті дискретизації.</summary>
+    private void EnsureCrossfeedCurrent(int sampleRate)
+    {
+        if (!_crossfeedDirty && _crossfeedSampleRate == sampleRate) return;
+        RebuildCrossfeed(sampleRate);
+    }
+
+    /// <summary>
+    /// Обробляє один фрейм crossfeed-ом (канали 0/1). Лінії затримки містять
+    /// вхідні (до crossfeed) семпли каналу — чиста feed-forward структура, без накопичення.
+    /// </summary>
+    private void ApplyCrossfeed(float[] buffer, int frameStart)
+    {
+        float leftIn = buffer[frameStart];
+        float rightIn = buffer[frameStart + 1];
+
+        // Найстаріші семпли протилежних каналів -> LPF ~700 Гц
+        float delayedR = _crossfeedDelayR[_crossfeedDelayPos];
+        float delayedL = _crossfeedDelayL[_crossfeedDelayPos];
+        float feedL = _crossfeedFilters[0].Transform(delayedR);
+        float feedR = _crossfeedFilters[1].Transform(delayedL);
+
+        buffer[frameStart] = leftIn + CrossfeedMix * feedL;
+        buffer[frameStart + 1] = rightIn + CrossfeedMix * feedR;
+
+        // У затримку пишемо вхідні семпли (feed-forward), а не виходи
+        _crossfeedDelayL[_crossfeedDelayPos] = leftIn;
+        _crossfeedDelayR[_crossfeedDelayPos] = rightIn;
+        _crossfeedDelayPos++;
+        if (_crossfeedDelayPos >= _crossfeedDelayL.Length) _crossfeedDelayPos = 0;
+    }
+
+    #endregion
+
+    #region Stereo width, mono, balance
+
+    /// <summary>
+    /// Stereo widening (M/S): side-сигнал підсилюється у StereoWidenFactor разу —
+    /// стереобаза стає ширшою без зміни mid-контенту. Для моно — no-op.
+    /// </summary>
+    public bool IsStereoWidenEnabled { get; set; }
+
+    /// <summary>Множник side-сигналу при увімкненому stereo widening.</summary>
+    public const float StereoWidenFactor = 1.5f;
+
+    /// <summary>Stereo width (0..2, 1 = норма): M/S-обробка стерео-фрейму.</summary>
+    public float StereoWidth { get; set; } = 1.0f;
+
+    /// <summary>Моно-згортка: обидва канали фрейму стають (L+R)/2.</summary>
+    public bool IsMonoEnabled { get; set; }
+
+    /// <summary>
+    /// Баланс (-1..+1): при Balance &gt; 0 правий канал гучністю 1, лівий —
+    /// (1 - Balance); при Balance &lt; 0 навпаки. Повзунок балансу L/R на UI.
+    /// </summary>
+    public float Balance { get; set; }
+
+    private static void ApplyStereoWidth(float[] buffer, int frameStart, float width)
+    {
+        float left = buffer[frameStart];
+        float right = buffer[frameStart + 1];
+        float mid = (left + right) / 2f;
+        float side = (left - right) / 2f * width;
+        buffer[frameStart] = mid + side;
+        buffer[frameStart + 1] = mid - side;
+    }
+
+    private static void ApplyMono(float[] buffer, int frameStart, int channels)
+    {
+        float sum = 0f;
+        for (int ch = 0; ch < channels; ch++) sum += buffer[frameStart + ch];
+        float mono = sum / channels;
+        for (int ch = 0; ch < channels; ch++) buffer[frameStart + ch] = mono;
+    }
+
+    /// <summary>
+    /// Баланс: Balance &gt; 0 — правий канал без змін, лівий множиться на
+    /// (1 - Balance); Balance &lt; 0 — навпаки ((1 + Balance) на правому).
+    /// </summary>
+    private static void ApplyBalance(float[] buffer, int frameStart, float balance)
+    {
+        if (balance > 0f)
+        {
+            buffer[frameStart] *= 1f - balance; // праворуч: приглушуємо лівий
+        }
+        else if (balance < 0f)
+        {
+            buffer[frameStart + 1] *= 1f + balance; // ліворуч: приглушуємо правий
+        }
+    }
+
+    #endregion
+
+    #region Spectrum tap (для майбутнього візуалізатора)
+
+    /// <summary>Розмір спектрального буфера в семплах (моно-мікс).</summary>
+    public const int SpectrumTapSize = 2048;
+
+    private readonly float[] _spectrumTap = new float[SpectrumTapSize];
+    private int _spectrumTapPosition; // індекс наступного запису = найстаріший семпл
+    private readonly object _spectrumTapLock = new();
+
+    /// <summary>
+    /// Копіює останні SpectrumTapSize семплів моно-міксу (від найстаріших до
+    /// найновіших) у destination. Потокобезпечний (під lock).
+    /// </summary>
+    public void CopySpectrumTap(float[] destination)
+    {
+        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        if (destination.Length != SpectrumTapSize)
+            throw new ArgumentException($"Очікується масив довжиною {SpectrumTapSize}.", nameof(destination));
+
+        lock (_spectrumTapLock)
+        {
+            for (int i = 0; i < SpectrumTapSize; i++)
+            {
+                destination[i] = _spectrumTap[(_spectrumTapPosition + i) % SpectrumTapSize];
+            }
+        }
+    }
+
+    /// <summary>Дописує моно-мікс оброблених фреймів у спектральний буфер.</summary>
+    private void FillSpectrumTap(float[] buffer, int offset, int sampleCount)
+    {
+        int channels = Math.Max(1, WaveFormat.Channels);
+        int frames = sampleCount / channels;
+        if (frames <= 0) return;
+
+        lock (_spectrumTapLock)
+        {
+            for (int frame = 0; frame < frames; frame++)
+            {
+                int frameStart = offset + frame * channels;
+                float mono = buffer[frameStart];
+                for (int ch = 1; ch < channels; ch++)
+                {
+                    mono += buffer[frameStart + ch];
+                }
+                _spectrumTap[_spectrumTapPosition] = mono / channels;
+                _spectrumTapPosition = (_spectrumTapPosition + 1) % SpectrumTapSize;
+            }
+        }
+    }
+
+    #endregion
+
     public int Read(float[] buffer, int offset, int count)
     {
         int samplesRead = _source.Read(buffer, offset, count);
@@ -276,6 +536,7 @@ public class DspProcessor : ISampleProvider
             // Коли DSP вимкнено, гейн все одно "доганяє" ціль, щоб після
             // повторного увімкнення не було стрибка гучності.
             AdvanceGainSlew(samplesRead);
+            FillSpectrumTap(buffer, offset, samplesRead);
             OutputMeter.ProcessSamples(buffer, offset, samplesRead);
             return samplesRead;
         }
@@ -298,6 +559,27 @@ public class DspProcessor : ISampleProvider
         bool useExtra = extraFilters.Length == ExtraFilterCount * channels;
         bool useCompressor = IsCompressorEnabled;
         bool useLimiter = IsLimiterEnabled;
+
+        // Нові етапи ланцюжка: widen -> crossfeed -> mono/balance (перед компресором),
+        // потім AGC (loudness normalization) після компресора, перед лімітером.
+        bool useLoudness = IsLoudnessNormalizationEnabled;
+        bool useCrossfeed = IsCrossfeedEnabled && channels >= 2;
+        // Widen: M/S-множник = StereoWidth * (widen ? 1.5 : 1); 1 = блок пропускається.
+        float widenFactor = Math.Clamp(StereoWidth, 0f, 2f) * (IsStereoWidenEnabled ? StereoWidenFactor : 1f);
+        bool useStereoWiden = channels >= 2 && Math.Abs(widenFactor - 1f) > 1e-4f;
+        bool useMono = IsMonoEnabled && channels >= 2;
+        float balance = Math.Clamp(Balance, -1f, 1f);
+        bool useBalance = channels >= 2 && Math.Abs(balance) > 1e-4f;
+        // Швидкий шлях: без widen/crossfeed/mono/balance блок не виконується і нічого не копіюється.
+        bool useSpatial = useCrossfeed || useStereoWiden || useMono || useBalance;
+
+        // Коефіцієнт однополюсного згладжувача RMS для AGC (постійна часу ~1 с)
+        float agcCoef = (float)Math.Exp(-1.0 / (sampleRate * AgcTimeConstantSeconds));
+        // Крок зміни гейну AGC за один фрейм (дБ): 5 дБ/с * тривалість фрейму
+        float agcStepDb = AgcSlewRateDbPerSecond * channels / sampleRate;
+        float loudnessTargetDb = LoudnessTargetDb;
+
+        if (useCrossfeed) EnsureCrossfeedCurrent(sampleRate);
 
         float gain = _appliedGainLinear;
         float targetGainDb = _gainDb;
@@ -367,6 +649,26 @@ public class DspProcessor : ISampleProvider
                 if (abs > framePeak) framePeak = abs;
             }
 
+            // 1.5 Просторова обробка: stereo widen -> crossfeed -> mono -> balance
+            if (useSpatial)
+            {
+                if (useStereoWiden) ApplyStereoWidth(buffer, frameStart, widenFactor);
+                if (useCrossfeed) ApplyCrossfeed(buffer, frameStart);
+                if (useMono) ApplyMono(buffer, frameStart, channels);
+                if (useBalance) ApplyBalance(buffer, frameStart, balance);
+            }
+
+            // Пік перераховуємо після просторової обробки — компресор бачить фактичний рівень
+            if (useSpatial)
+            {
+                framePeak = 0f;
+                for (int ch = 0; ch < channels; ch++)
+                {
+                    float abs = Math.Abs(buffer[frameStart + ch]);
+                    if (abs > framePeak) framePeak = abs;
+                }
+            }
+
             // 2. Компресор (огинаюча рахується по піку фрейму, діє на всі канали однаково)
             if (useCompressor)
             {
@@ -389,7 +691,39 @@ public class DspProcessor : ISampleProvider
                 }
             }
 
-            // 3. М'який tanh-лімітер: пік ніколи не перевищує стелю
+            // 3. Loudness normalization (AGC): після всіх інших стадій, перед лімітером.
+            // Однополюсний згладжувач RMS (~1 с) тягне рівень до цілі; корекція
+            // обмежена +12/-6 дБ, гейн рухається не швидше за 5 дБ/с.
+            // Коли AGC вимкнено, але гейн ще не повернувся до 1 — продовжуємо
+            // плавний рух до 0 дБ (без стрибка).
+            if (useLoudness || _agcGainDb != 0f)
+            {
+                float? agcTargetDb = null;
+                if (useLoudness)
+                {
+                    // RMS поточного фрейму після компресора (те, що бачить AGC)
+                    float sumSquares = 0f;
+                    for (int ch = 0; ch < channels; ch++)
+                    {
+                        float s = buffer[frameStart + ch];
+                        sumSquares += s * s;
+                    }
+
+                    float frameRms = (float)Math.Sqrt(sumSquares / channels);
+                    _agcRms = agcCoef * _agcRms + (1f - agcCoef) * frameRms;
+
+                    float envelopeDb = 20f * (float)Math.Log10(Math.Max(_agcRms, AgcMinRms));
+                    agcTargetDb = Math.Clamp(loudnessTargetDb - envelopeDb, -AgcMaxCutDb, AgcMaxBoostDb);
+                }
+
+                float agcGain = AdvanceAgcSlew(agcTargetDb, agcStepDb);
+                for (int ch = 0; ch < channels; ch++)
+                {
+                    buffer[frameStart + ch] *= agcGain;
+                }
+            }
+
+            // 4. М'який tanh-лімітер: пік ніколи не перевищує стелю
             if (useLimiter)
             {
                 for (int ch = 0; ch < channels; ch++)
@@ -403,6 +737,9 @@ public class DspProcessor : ISampleProvider
         _appliedGainDb = appliedGainDb;
         _appliedGainLinear = gain;
 
+        // Спектральний тап заповнюємо найостаннішим — після всієї обробки
+        FillSpectrumTap(buffer, offset, samplesRead);
+
         OutputMeter.ProcessSamples(buffer, offset, samplesRead);
         return samplesRead;
     }
@@ -410,6 +747,8 @@ public class DspProcessor : ISampleProvider
     /// <summary>
     /// Рухає застосований гейн до цілі на задану кількість семплів
     /// (використовується, коли DSP вимкнено і сигнал не обробляється).
+    /// Заодно плавно повертає гейн AGC до 0 дБ, щоб після повторного
+    /// увімкнення не було стрибка гучності.
     /// </summary>
     private void AdvanceGainSlew(int sampleCount)
     {
@@ -427,6 +766,13 @@ public class DspProcessor : ISampleProvider
         }
 
         _appliedGainLinear = (float)Math.Pow(10, _appliedGainDb / 20.0);
+
+        // AGC вимкнено разом із DSP — гейн плавно повертається до єдиниці
+        if (_agcGainDb != 0f)
+        {
+            float agcStepDb = AgcSlewRateDbPerSecond * sampleCount / Math.Max(1, sampleRate);
+            AdvanceAgcSlew(null, agcStepDb);
+        }
     }
 
     /// <summary>

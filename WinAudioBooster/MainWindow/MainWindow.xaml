@@ -216,6 +216,54 @@
                                           Unchecked="DspBoostToggle_OnChecked"/>
                             </Grid>
 
+                            <!-- Просторові DSP-тоггли: Loudness / Stereo width / Crossfeed (навушники) / Mono -->
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox Grid.Column="0" x:Name="LoudnessCheckBox"
+                                          Content="{DynamicResource Loudness_Label}"
+                                          Tag="Loudness" FontSize="12"
+                                          HorizontalAlignment="Left" Margin="0,0,14,0"
+                                          Checked="DspSpatialToggle_OnChecked"
+                                          Unchecked="DspSpatialToggle_OnChecked"/>
+                                <CheckBox Grid.Column="1" x:Name="StereoWidthCheckBox"
+                                          Content="{DynamicResource StereoWidth_Label}"
+                                          Tag="StereoWidth" FontSize="12"
+                                          HorizontalAlignment="Left" Margin="0,0,14,0"
+                                          Checked="DspSpatialToggle_OnChecked"
+                                          Unchecked="DspSpatialToggle_OnChecked"/>
+                                <CheckBox Grid.Column="2" x:Name="CrossfeedCheckBox"
+                                          Content="{DynamicResource Crossfeed_Label}"
+                                          Tag="Crossfeed" FontSize="12"
+                                          HorizontalAlignment="Left" Margin="0,0,14,0"
+                                          Checked="DspSpatialToggle_OnChecked"
+                                          Unchecked="DspSpatialToggle_OnChecked"/>
+                                <CheckBox Grid.Column="3" x:Name="MonoCheckBox"
+                                          Content="{DynamicResource Mono_Label}"
+                                          Tag="Mono" FontSize="12"
+                                          HorizontalAlignment="Left"
+                                          Checked="DspSpatialToggle_OnChecked"
+                                          Unchecked="DspSpatialToggle_OnChecked"/>
+                            </Grid>
+
+                            <!-- Баланс L/R: -1 = повністю лівий, 0 = центр, +1 = повністю правий -->
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="64"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="L" Foreground="{DynamicResource RazerTextMuted}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <Slider Grid.Column="1" x:Name="BalanceSlider" Minimum="-1" Maximum="1" Value="0" TickFrequency="0.05" ValueChanged="BalanceSlider_OnValueChanged" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="{DynamicResource Balance_Label}"/>
+                                <TextBlock Grid.Column="2" Text="R" Foreground="{DynamicResource RazerTextMuted}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Grid.Column="3" x:Name="BalanceValueText" Text="0" Foreground="{DynamicResource RazerTextMain}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+
                             <!-- 10 вертикальних слайдерів: 31 Гц … 16 кГц -->
                             <UniformGrid Columns="10">
                                 <StackPanel Margin="1,0">
@@ -273,10 +321,11 @@
                     </GroupBox>
                 </StackPanel>
 
-                <!-- VU Meters -->
+                <!-- VU Meters + Spectrum Visualizer -->
                 <GroupBox Grid.Row="4" Header="{DynamicResource VuMeters_Group}" Padding="10">
                     <Grid>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
@@ -290,6 +339,10 @@
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Vu_Output}" Foreground="{DynamicResource RazerTextMuted}" VerticalAlignment="Center" FontSize="11"/>
                         <ProgressBar Grid.Row="1" Grid.Column="1" x:Name="OutputVuBar" Height="8" Minimum="0" Maximum="1" Foreground="#00BCFF" Margin="0,3"/>
+
+                        <!-- Візуалізатор рівня-в-часі: 32 бари історії піків виходу (оновлюється у _vuTimer) -->
+                        <Canvas Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                x:Name="SpectrumCanvas" Height="60" Margin="0,10,0,2" ClipToBounds="True"/>
                     </Grid>
                 </GroupBox>
 
@@ -333,6 +386,26 @@
                                 <ComboBoxItem Content="{DynamicResource SleepTimer_30Min}" Tag="30"/>
                                 <ComboBoxItem Content="{DynamicResource SleepTimer_60Min}" Tag="60"/>
                             </ComboBox>
+                        </Grid>
+
+                        <!-- Нічний режим за розкладом (Quiet Hours) -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <CheckBox Grid.Row="0" x:Name="QuietHoursCheckBox"
+                                      Content="{DynamicResource QuietHours_Label}"
+                                      Click="QuietHoursCheckBox_OnClick"
+                                      Margin="0,0,0,6"/>
+
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,2">
+                                <TextBlock Text="{DynamicResource QuietHours_Start}" Foreground="{DynamicResource RazerTextMuted}" VerticalAlignment="Center" FontSize="12" Margin="0,0,8,0"/>
+                                <ComboBox x:Name="QuietHoursStartComboBox" Width="86" Height="26" SelectionChanged="QuietHoursComboBox_OnSelectionChanged" Margin="0,0,12,0"/>
+                                <TextBlock Text="{DynamicResource QuietHours_End}" Foreground="{DynamicResource RazerTextMuted}" VerticalAlignment="Center" FontSize="12" Margin="0,0,8,0"/>
+                                <ComboBox x:Name="QuietHoursEndComboBox" Width="86" Height="26" SelectionChanged="QuietHoursComboBox_OnSelectionChanged"/>
+                            </StackPanel>
                         </Grid>
 
                         <!-- Theme Selection Row -->
@@ -410,6 +483,17 @@
                                 </ItemsControl>
                             </StackPanel>
                         </GroupBox>
+
+                        <!-- Журнал подій: увімкнення логування + відкрити log.txt -->
+                        <CheckBox x:Name="LoggingEnabledCheckBox"
+                                  Content="{DynamicResource Logging_Label}"
+                                  Click="LoggingEnabledCheckBox_OnClick"
+                                  Margin="0,0,0,10"/>
+                        <Button x:Name="OpenLogButton"
+                                Content="{DynamicResource OpenLog_Btn}"
+                                Click="OpenLogButton_OnClick"
+                                Style="{StaticResource RazerButton}"
+                                Margin="0,0,0,10" HorizontalAlignment="Stretch"/>
 
                         <!-- Update Check Button -->
                         <Button x:Name="CheckUpdatesButton" Content="Перевірити оновлення" Click="CheckUpdatesButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,0,10" HorizontalAlignment="Stretch"/>

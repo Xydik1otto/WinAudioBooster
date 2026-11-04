@@ -75,4 +75,26 @@
     <sys:String x:Key="BassBoost_Label">Bass Boost</sys:String>
     <sys:String x:Key="TrebleBoost_Label">Treble Boost</sys:String>
     <sys:String x:Key="SubBassFilter_Label">Cut sub-bass (30 Гц)</sys:String>
+
+    <!-- Просторові DSP-тоггли та баланс (секція Еквалайзер) -->
+    <sys:String x:Key="Loudness_Label">Loudness normalization</sys:String>
+    <sys:String x:Key="StereoWidth_Label">Stereo width</sys:String>
+    <sys:String x:Key="Crossfeed_Label">Crossfeed (навушники)</sys:String>
+    <sys:String x:Key="Mono_Label">Mono</sys:String>
+    <sys:String x:Key="Balance_Label">Баланс L/R (0 — центр)</sys:String>
+
+    <!-- Журнал подій (налаштування) -->
+    <sys:String x:Key="Logging_Label">Вести журнал подій (лог)</sys:String>
+    <sys:String x:Key="OpenLog_Btn">📄 Відкрити лог</sys:String>
+
+    <!-- Нічний режим за розкладом (Quiet Hours) -->
+    <sys:String x:Key="QuietHours_Label">Нічний режим за розкладом (пресет «Night Mode»)</sys:String>
+    <sys:String x:Key="QuietHours_Start">Початок:</sys:String>
+    <sys:String x:Key="QuietHours_End">Кінець:</sys:String>
+
+    <!-- OSD-фідбек хоткеїв (tray balloon) -->
+    <sys:String x:Key="OSD_Preset">Пресет: {0}</sys:String>
+    <sys:String x:Key="OSD_BypassOn">Bypass: On</sys:String>
+    <sys:String x:Key="OSD_BypassOff">Bypass: Off</sys:String>
+    <sys:String x:Key="OSD_Volume">Гучність: {0:F0}%</sys:String>
 </ResourceDictionary>

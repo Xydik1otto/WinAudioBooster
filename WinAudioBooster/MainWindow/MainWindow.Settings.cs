@@ -55,6 +55,9 @@ public partial class MainWindow
         EnableBoosterCheckBox.IsChecked = !(EnableBoosterCheckBox.IsChecked == true);
         RestartAudioEngineIfEnabled();
         SaveCurrentSettings();
+
+        // OSD-фідбек: бустер вимкнено хоткеєм → bypass активний (і навпаки)
+        ShowBypassOsd(EnableBoosterCheckBox.IsChecked == true);
     }
 
     // Маршрутизація глобальних хоткеїв за ідентифікатором
@@ -79,6 +82,9 @@ public partial class MainWindow
         if (index < 0 || index >= presets.Count) return;
 
         ApplyPresetByName(presets[index].Name);
+
+        // OSD-фідбек хоткея пресета
+        ShowPresetOsd(presets[index].Name);
     }
 
     private void LoadSavedSettingsAndPresets()
@@ -98,6 +104,13 @@ public partial class MainWindow
 
         // Швидкі DSP-тоггли: Bass Boost / Treble Boost / Cut sub-bass
         ApplyBoostTogglesToDsp(settings);
+
+        // Просторові DSP-тоггли: Loudness / Stereo width / Crossfeed / Mono + Balance
+        ApplySpatialTogglesToDsp(settings);
+
+        // Журнал подій: чекбокс у налаштуваннях керує статичним LoggingService
+        LoggingService.IsEnabled = settings.IsLoggingEnabled;
+        LoggingEnabledCheckBox.IsChecked = settings.IsLoggingEnabled;
 
         if (OutputDeviceComboBox.ItemsSource is List<AudioDeviceInfo> physicalDevices && physicalDevices.Count > 0)
         {
@@ -131,6 +144,10 @@ public partial class MainWindow
         EnableBoosterCheckBox.IsChecked = settings.IsBoosterEnabled;
         HearingProtectionCheckBox.IsChecked = settings.IsHearingProtectionEnabled;
         SleepTimerComboBox.SelectedIndex = 0; // за замовчуванням "Вимк" (обробник пропускається під час ініціалізації)
+
+        // Нічний режим за розкладом: UI + хвилинний таймер + перша перевірка
+        InitializeQuietHours(settings);
+
         UpdateAllUiTexts();
     }
 
@@ -160,9 +177,20 @@ public partial class MainWindow
             IsBassBoostEnabled = BassBoostCheckBox.IsChecked == true,
             IsTrebleBoostEnabled = TrebleBoostCheckBox.IsChecked == true,
             IsSubBassFilterEnabled = SubBassFilterCheckBox.IsChecked == true,
+            IsLoudnessNormalizationEnabled = LoudnessCheckBox.IsChecked == true,
+            IsStereoWidenEnabled = StereoWidthCheckBox.IsChecked == true,
+            IsCrossfeedEnabled = CrossfeedCheckBox.IsChecked == true,
+            IsMonoEnabled = MonoCheckBox.IsChecked == true,
+            Balance = BalanceSlider.Value,
+            IsLoggingEnabled = LoggingEnabledCheckBox.IsChecked == true,
             DevicePresetBindings = existing.DevicePresetBindings,
             AppVolumeRules = existing.AppVolumeRules,
-            IsHearingProtectionEnabled = HearingProtectionCheckBox.IsChecked == true
+            IsHearingProtectionEnabled = HearingProtectionCheckBox.IsChecked == true,
+
+            // Нічний режим за розкладом
+            QuietHoursEnabled = QuietHoursCheckBox.IsChecked == true,
+            QuietHoursStart = Math.Max(0, QuietHoursStartComboBox.SelectedIndex),
+            QuietHoursEnd = Math.Max(0, QuietHoursEndComboBox.SelectedIndex)
         };
 
         _settingsManager.SaveSettings(settings);
@@ -191,9 +219,21 @@ public partial class MainWindow
             IsBassBoostEnabled = BassBoostCheckBox.IsChecked == true,
             IsTrebleBoostEnabled = TrebleBoostCheckBox.IsChecked == true,
             IsSubBassFilterEnabled = SubBassFilterCheckBox.IsChecked == true,
+            IsLoudnessNormalizationEnabled = LoudnessCheckBox.IsChecked == true,
+            IsStereoWidenEnabled = StereoWidthCheckBox.IsChecked == true,
+            IsCrossfeedEnabled = CrossfeedCheckBox.IsChecked == true,
+            IsMonoEnabled = MonoCheckBox.IsChecked == true,
+            Balance = BalanceSlider.Value,
+            IsLoggingEnabled = LoggingEnabledCheckBox.IsChecked == true,
             DevicePresetBindings = existing.DevicePresetBindings,
             AppVolumeRules = existing.AppVolumeRules,
             IsHearingProtectionEnabled = HearingProtectionCheckBox.IsChecked == true,
+
+            // Нічний режим за розкладом
+            QuietHoursEnabled = QuietHoursCheckBox.IsChecked == true,
+            QuietHoursStart = Math.Max(0, QuietHoursStartComboBox.SelectedIndex),
+            QuietHoursEnd = Math.Max(0, QuietHoursEndComboBox.SelectedIndex),
+
             HotkeyModifiers = modifiers,
             HotkeyVKey = vKey,
             HotkeyDisplayName = displayName
@@ -206,6 +246,36 @@ public partial class MainWindow
     {
         bool isChecked = AutoStartCheckBox.IsChecked == true;
         _autoStartService.SetAutoStart(isChecked);
+    }
+
+    // Увімкнення/вимкнення журналу подій (чекбокс у налаштуваннях)
+    private void LoggingEnabledCheckBox_OnClick(object sender, RoutedEventArgs e)
+    {
+        LoggingService.IsEnabled = LoggingEnabledCheckBox.IsChecked == true;
+        SaveCurrentSettings();
+    }
+
+    // «Відкрити лог»: показує %APPDATA%\WinAudioBooster\log.txt у системному текстовому редакторі
+    private void OpenLogButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Якщо логу ще немає (щойно ввімкнули) — створюємо порожній файл
+            if (!File.Exists(LoggingService.LogFilePath))
+            {
+                Directory.CreateDirectory(LoggingService.LogDirectory);
+                File.WriteAllText(LoggingService.LogFilePath, string.Empty);
+            }
+
+            Process.Start(new ProcessStartInfo(LoggingService.LogFilePath) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            LoggingService.WriteException("ERROR", ex);
+            MessageBox.Show(
+                $"Не вдалося відкрити файл журналу:\n{LoggingService.LogFilePath}\n\n{ex.Message}",
+                "Журнал", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private void ChangeHotkeyButton_OnClick(object sender, RoutedEventArgs e)
@@ -343,12 +413,17 @@ public partial class MainWindow
         if (hasUpdate)
         {
             var result = MessageBox.Show(
-                $"Знайдено нову версію програми ({version})!\n\nБажаєте відкрити сторінку завантаження у браузері?",
+                $"Знайдено нову версію програми ({version})!\n\n«Так» — завантажити й встановити автоматично,\n«Ні» — відкрити сторінку завантаження у браузері.",
                 "Оновлення WinAudioBooster",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Information);
 
             if (result == MessageBoxResult.Yes)
+            {
+                bool installed = await InstallPendingUpdateAsync();
+                if (installed) return; // бат-скрипт перезапустить додаток після закриття процесу
+            }
+            else
             {
                 try
                 {
@@ -364,6 +439,48 @@ public partial class MainWindow
 
         CheckUpdatesButton.IsEnabled = true;
         CheckUpdatesButton.Content = "Перевірити оновлення";
+    }
+
+    /// <summary>
+    /// Завантажує й встановлює оновлення через UpdateService (з SHA256-перевіркою),
+    /// після чого коректно завершує додаток — бат-скрипт замінить exe і перезапустить його.
+    /// </summary>
+    private async Task<bool> InstallPendingUpdateAsync()
+    {
+        var check = _updateService.LastCheckResult;
+        if (check == null || string.IsNullOrEmpty(check.AssetDownloadUrl))
+        {
+            MessageBox.Show("Не вдалося знайти файл оновлення у релізі.", "Оновлення", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        CheckUpdatesButton.Content = "Завантаження оновлення...";
+
+        // Прогрес завантаження у Title вікна (патерн VbCableInstaller) + у кнопці
+        var progress = new Progress<string>(status =>
+        {
+            CheckUpdatesButton.Content = status;
+            Title = $"WinAudioBooster – {status}";
+        });
+
+        bool installed = await _updateService.DownloadAndInstallUpdateAsync(
+            check.AssetDownloadUrl, check.AssetSha256, progress);
+
+        if (installed)
+        {
+            // Бат-скрипт чекає закриття процесу (до 30 с), потім замінює exe і перезапускає додаток
+            SaveCurrentSettings();
+            Application.Current.Shutdown();
+            return true;
+        }
+
+        // Встановлення не відбулося — повертаємо заголовок вікна
+        Title = (string)FindResource("MainWindow_Title");
+        MessageBox.Show("Не вдалося встановити оновлення автоматично.\nСпробуйте завантажити його вручну зі сторінки релізів GitHub.",
+            "Оновлення", MessageBoxButton.OK, MessageBoxImage.Warning);
+        CheckUpdatesButton.IsEnabled = true;
+        CheckUpdatesButton.Content = "Перевірити оновлення";
+        return false;
     }
 
     private void UpdateAllUiTexts()

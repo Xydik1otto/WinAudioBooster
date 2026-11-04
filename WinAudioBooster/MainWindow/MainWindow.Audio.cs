@@ -22,6 +22,9 @@ public partial class MainWindow
 
         _audioEngine.ErrorOccurred += (s, err) =>
         {
+            // Журнал: помилки аудіодвижка фіксуються у %APPDATA%\WinAudioBooster\log.txt
+            LoggingService.WriteLog("ERROR", $"AudioEngine: {err}");
+
             Dispatcher.Invoke(() => MessageBox.Show(err, "WinAudioBooster Error", MessageBoxButton.OK, MessageBoxImage.Error));
         };
 
@@ -30,6 +33,8 @@ public partial class MainWindow
         {
             Dispatcher.Invoke(() =>
             {
+                bool suppressOsd = _isInitializing || _isApplyingPreset;
+
                 if (GainSlider.Value <= 100.0)
                 {
                     _isApplyingPreset = true;
@@ -38,16 +43,68 @@ public partial class MainWindow
                     _isApplyingPreset = false;
                     _miniMixerWindow?.SyncWithMainWindow();
                 }
+
+                // OSD-фідбек зміни гучності (як у Volume²): пропускаємо службові зміни
+                // під час ініціалізації/застосування пресета, щоб не спамити при запуску
+                if (!suppressOsd)
+                {
+                    ShowVolumeOsd(winPercent);
+                }
             });
         };
 
         // 3. Перевірка та автоматична інсталяція VB-Cable, якщо він відсутній у системі
-        await CheckAndEnsureCableInstalledAsync();
+        try
+        {
+            await CheckAndEnsureCableInstalledAsync();
+        }
+        catch (Exception ex)
+        {
+            // Критична помилка старту (інсталяція кабелю) — у журнал
+            LoggingService.WriteException("ERROR", ex);
+        }
 
         // 4. Запуск аудіодвижка та авто-переключення виводу Windows
-        await AutoSetupAudioPipelineAsync();
+        try
+        {
+            await AutoSetupAudioPipelineAsync();
+        }
+        catch (Exception ex)
+        {
+            // Критична помилка старту аудіопайплайна — у журнал
+            LoggingService.WriteException("ERROR", ex);
+        }
+
+        // 5. Фонова перевірка оновлень (раз на 12 годин; при новій версії — балун у треї)
+        _ = RunPeriodicUpdateCheckAsync();
 
         UpdateInstallButtonState();
+    }
+
+    /// <summary>Разова перевірка оновлень при старті, потім кожні 12 годин.</summary>
+    private async Task RunPeriodicUpdateCheckAsync()
+    {
+        // Даємо додатку спокійно стартувати — перша перевірка через 5 хвилин
+        await Task.Delay(TimeSpan.FromMinutes(5));
+
+        while (true)
+        {
+            try
+            {
+                var (hasUpdate, version, url) = await _updateService.CheckForUpdatesAsync();
+                if (hasUpdate && !string.IsNullOrEmpty(version))
+                {
+                    Dispatcher.Invoke(() => _trayService?.ShowUpdateAvailable(version, url));
+                }
+            }
+            catch (Exception ex)
+            {
+                // Мережа недоступна або GitHub API не відповів — у журнал і спроба наступного разу
+                LoggingService.WriteLog("WARN", $"Перевірка оновлень не вдалася: {ex.Message}");
+            }
+
+            await Task.Delay(TimeSpan.FromHours(12));
+        }
     }
 
     private async Task CheckAndEnsureCableInstalledAsync()
@@ -218,10 +275,15 @@ public partial class MainWindow
 
     private void InitializeVuTimer()
     {
+        // Спектр-візуалізатор малюється у тому ж кадрі _vuTimer (~30 fps)
+        InitializeSpectrumVisualizer();
+
         _vuTimer.Interval = TimeSpan.FromMilliseconds(33);
         _vuTimer.Tick += (s, e) =>
         {
-            if (_audioEngine.Dsp != null && EnableBoosterCheckBox.IsChecked == true)
+            bool boosterEnabled = EnableBoosterCheckBox.IsChecked == true;
+
+            if (_audioEngine.Dsp != null && boosterEnabled)
             {
                 InputVuBar.Value = _audioEngine.Dsp.InputMeter.CurrentLevel;
                 OutputVuBar.Value = _audioEngine.Dsp.OutputMeter.CurrentLevel;
@@ -231,6 +293,10 @@ public partial class MainWindow
                 InputVuBar.Value = 0;
                 OutputVuBar.Value = 0;
             }
+
+            // Візуалізатор рівня-в-часі у тому ж кадрі (~30 fps):
+            // кожен тік — новий бар піку виходу, історія зсувається вправо
+            UpdatePeakHistory(_audioEngine.Dsp?.OutputMeter.CurrentLevel ?? 0, boosterEnabled);
         };
         _vuTimer.Start();
     }

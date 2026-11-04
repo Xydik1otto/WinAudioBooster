@@ -61,3 +61,84 @@ jobs:
             WinAudioBooster/bin/Release/net8.0-windows/win-x64/publish/WinAudioBooster.exe
             build/installer/WinAudioBooster-Setup-*.exe
           generate_release_notes: true
+
+  # Окремий job ПІСЛЯ релізу: рахує SHA256 опублікованого exe та оновлює
+  # маніфести winget і Scoop прямо в репо (коміт у main).
+  update-manifests:
+    name: Update manifests hashes
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download published exe and compute SHA256
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          URL="https://github.com/${REPO}/releases/download/${TAG}/WinAudioBooster.exe"
+          echo "Downloading: ${URL}"
+          curl -fsSL --retry 3 -o /tmp/WinAudioBooster.exe "${URL}"
+          SHA=$(sha256sum /tmp/WinAudioBooster.exe | cut -d' ' -f1)
+          echo "SHA256: ${SHA}"
+          # Зберігаємо змінну між кроками job-а
+          echo "SHA=${SHA}" >> "$GITHUB_ENV"
+
+      - name: Update winget and scoop manifests
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, pathlib, re
+
+          tag = os.environ["TAG"]
+          ver = tag[1:] if tag.startswith("v") else tag
+          sha = os.environ["SHA"].strip().lower()
+          repo = os.environ["REPO"]
+          exe_url = f"https://github.com/{repo}/releases/download/{tag}/WinAudioBooster.exe"
+          release_url = f"https://github.com/{repo}/releases/tag/{tag}"
+
+          # --- winget (single-file yaml) ---
+          wp = pathlib.Path("packaging/winget/Xydik1otto.WinAudioBooster.yaml")
+          text = wp.read_text(encoding="utf-8")
+          text = re.sub(r"(?m)^PackageVersion:\s*\S+", f"PackageVersion: {ver}", text)
+          text = re.sub(r"(?m)^\s*InstallerUrl:\s*\S+", f"    InstallerUrl: {exe_url}", text)
+          text = re.sub(
+              r"(?m)^\s*InstallerSha256:\s*[0-9a-fA-F]{64}.*$",
+              f"    InstallerSha256: {sha} # розраховано CI для {tag}",
+              text,
+          )
+          text = re.sub(r"(?m)^ReleaseNotesUrl:\s*\S+", f"ReleaseNotesUrl: {release_url}", text)
+          wp.write_text(text, encoding="utf-8")
+
+          # --- scoop (json) ---
+          sp = pathlib.Path("packaging/scoop/winaudiobooster.json")
+          manifest = json.loads(sp.read_text(encoding="utf-8"))
+          manifest["version"] = ver
+          manifest["url"] = exe_url
+          manifest["hash"] = sha
+          manifest.setdefault("autoupdate", {})["url"] = (
+              f"https://github.com/{repo}/releases/download/v$version/WinAudioBooster.exe"
+          )
+          sp.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+          print(f"Маніфести оновлено для {tag} (sha256: {sha})")
+          PYEOF
+
+      - name: Commit and push manifest updates
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packaging/winget/Xydik1otto.WinAudioBooster.yaml packaging/scoop/winaudiobooster.json
+          if git diff --cached --quiet; then
+            echo "Маніфести вже актуальні — коміт не потрібен."
+            exit 0
+          fi
+          git commit -m "chore: update manifests hash for ${TAG}"
+          git push origin main

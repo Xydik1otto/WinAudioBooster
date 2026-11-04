@@ -1,3 +1,9 @@
+<!--
+Keywords/Topics (пропозиція для налаштування репозиторію: About → ⚙️ → Topics):
+equalizer, audio, volume-booster, wpf, dotnet, windows, naudio
+Додатково можна розглянути: audio-dsp, sound-enhancer, wasapi, vb-audio-cable, csharp
+-->
+
 # Contributing /Як долучитися
 
 Дякуємо за інтерес до **WinAudioBooster**! 🎚️ Цей документ описує, як зібрати проект, які правила оформлення коду діють у репозиторії та як надіслати pull request.

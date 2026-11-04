@@ -405,6 +405,287 @@ public class DspProcessorTests
 
     #endregion
 
+    #region Loudness normalization, crossfeed, stereo width/mono/balance, spectrum tap
+
+    [Fact]
+    public void LoudnessNormalization_ConvergesToTarget()
+    {
+        // Синус із RMS -24 дБFS: амплітуда = 10^(-24/20) * sqrt(2)
+        float amplitude = (float)(Math.Pow(10, -24.0 / 20.0) * Math.Sqrt(2));
+        var dsp = CreateDsp(Sine(1000.0, amplitude));
+        dsp.IsLoudnessNormalizationEnabled = true;
+        dsp.LoudnessTargetDb = -16f;
+
+        // ~10 с сигналу (порціями, як реальний playback) — вистачає для повільної
+        // огинаючої (атака ~1-2 с) та повільного гейну нормалізації.
+        int totalSamples = SampleRate * 10 * Channels;
+        var buffer = new float[totalSamples];
+        int read = 0;
+        while (read < totalSamples)
+        {
+            int chunk = Math.Min(4096, totalSamples - read);
+            int got = dsp.Read(buffer, read, chunk);
+            Assert.Equal(chunk, got);
+            read += got;
+        }
+
+        double rmsDb = 20 * Math.Log10(Rms(buffer[(totalSamples / 2)..]));
+        Assert.InRange(rmsDb, -18.0, -14.0); // ціль -16 дБ, допуск ±2 дБ
+    }
+
+    [Fact]
+    public void Crossfeed_SignalOnlyInLeft_AppearsInRight()
+    {
+        // Синус 200 Гц лише в лівому каналі (правий — нуль):
+        // після crossfeed у правому каналі має з'явитися затримана відфільтрована копія.
+        var dsp = CreateDsp(pos => (pos % 2 == 0)
+            ? 0.4f * (float)Math.Sin(2 * Math.PI * 200.0 * (pos / 2) / SampleRate)
+            : 0f);
+        dsp.IsCrossfeedEnabled = true;
+
+        var samples = ReadAll(dsp, SampleRate); // 1 с — значно більше за затримку 0.3 мс
+
+        double leftRms = ChannelRms(samples, 0, 2, skipSamples: 4096);
+        double rightRms = ChannelRms(samples, 1, 2, skipSamples: 4096);
+
+        Assert.True(leftRms > 0.01, $"Лівий канал має містити сигнал: L={leftRms:F5}");
+        Assert.True(rightRms > leftRms * 0.01,
+            $"Очікували crossfeed у правому каналі (>1% від L): L={leftRms:F5}, R={rightRms:F5}");
+    }
+
+    [Fact]
+    public void MonoEnabled_LeftEqualsRight()
+    {
+        // Різні сигнали на каналах — після моно-згортки L = R у кожному фреймі
+        var dsp = CreateDsp(pos => (pos % 2 == 0) ? 0.3f : 0.6f);
+        dsp.IsMonoEnabled = true;
+
+        var samples = ReadAll(dsp, 1024);
+        for (int i = 0; i < samples.Length; i += 2)
+        {
+            Assert.Equal(samples[i], samples[i + 1], 5);
+        }
+    }
+
+    [Fact]
+    public void Balance_PlusOne_LeftSilent_RightUnchanged()
+    {
+        // Balance = +1 (праворуч): лівий канал = 0.2 * (1 - 1) = 0, правий без змін
+        var dsp = CreateDsp(_ => 0.2f);
+        dsp.Balance = 1f;
+
+        var samples = ReadAll(dsp, 1024);
+        Assert.Equal(0f, samples[0], 4);
+        Assert.True(Math.Abs(samples[1] - 0.2f) < 1e-3f,
+            $"Правий канал має залишитися без змін: {samples[1]}");
+    }
+
+    [Fact]
+    public void Balance_MinusOne_RightSilent_LeftUnchanged()
+    {
+        // Balance = -1 (ліворуч): правий канал = 0.2 * (1 + (-1)) = 0, лівий без змін
+        var dsp = CreateDsp(_ => 0.2f);
+        dsp.Balance = -1f;
+
+        var samples = ReadAll(dsp, 1024);
+        Assert.Equal(0f, samples[1], 4);
+        Assert.True(Math.Abs(samples[0] - 0.2f) < 1e-3f,
+            $"Лівий канал має залишитися без змін: {samples[0]}");
+    }
+
+    [Fact]
+    public void CopySpectrumTap_WrongSize_ThrowsArgumentException()
+    {
+        var dsp = CreateDsp(Sine(1000.0));
+        Assert.Throws<ArgumentException>(() => dsp.CopySpectrumTap(new float[DspProcessor.SpectrumTapSize - 1]));
+        Assert.Throws<ArgumentException>(() => dsp.CopySpectrumTap(new float[DspProcessor.SpectrumTapSize + 1]));
+    }
+
+    [Fact]
+    public void CopySpectrumTap_FilledWithNonZeros_AfterRead()
+    {
+        var dsp = CreateDsp(Sine(1000.0, 0.5f));
+
+        // Читаємо вдвічі більше за розмір тапа — буфер гарантовано заповнений
+        ReadAll(dsp, DspProcessor.SpectrumTapSize * 4);
+
+        var tap = new float[DspProcessor.SpectrumTapSize];
+        dsp.CopySpectrumTap(tap);
+
+        int nonZero = 0;
+        foreach (float s in tap)
+        {
+            if (s != 0f) nonZero++;
+        }
+
+        Assert.True(nonZero > DspProcessor.SpectrumTapSize / 2,
+            $"Тап має бути заповнений ненульовими семплами: nonZero={nonZero}");
+    }
+
+    [Fact]
+    public void StereoWiden_IncreasesSideContent()
+    {
+        // Чистий side-сигнал (L=+0.5, R=-0.5): mid = 0, side = 0.5.
+        // Після widen (side × 1.5): L = +0.75, R = -0.75 — |L|+|R| зростає з 1.0 до 1.5.
+        var dsp = CreateDsp(pos => (pos % 2 == 0) ? 0.5f : -0.5f);
+        dsp.IsStereoWidenEnabled = true;
+
+        var samples = ReadAll(dsp, 1024);
+        Assert.Equal(0.75f, samples[0], 4);
+        Assert.Equal(-0.75f, samples[1], 4);
+    }
+
+    [Fact]
+    public void StereoWiden_Disabled_PassesSignalUnchanged()
+    {
+        var dsp = CreateDsp(pos => (pos % 2 == 0) ? 0.5f : -0.5f);
+
+        var samples = ReadAll(dsp, 64);
+        Assert.Equal(0.5f, samples[0], 5);
+        Assert.Equal(-0.5f, samples[1], 5);
+    }
+
+    [Fact]
+    public void Crossfeed_LeftImpulse_AppearsInRightAfterDelay()
+    {
+        // Імпульс у лівому каналі: у правому каналі через ~0.3 мс
+        // (sampleRate * CrossfeedDelaySeconds семплів) з'являється слабкий
+        // відфільтрований відгук (коефіцієнт ~0.25 + імпульсний отклик LPF ~700 Гц).
+        int delaySamples = Math.Max(1, (int)MathF.Round(SampleRate * DspProcessor.CrossfeedDelaySeconds));
+        var dsp = CreateDsp(pos => pos == 0 ? 1f : 0f);
+        dsp.IsCrossfeedEnabled = true;
+
+        var samples = ReadAll(dsp, SampleRate / 2);
+
+        // До затримки правий канал порожній
+        for (int i = 1; i < delaySamples * 2; i += 2)
+        {
+            Assert.Equal(0f, samples[i], 5);
+        }
+
+        float maxRight = 0f;
+        for (int i = delaySamples * 2 + 1; i < samples.Length; i += 2)
+        {
+            maxRight = Math.Max(maxRight, Math.Abs(samples[i]));
+        }
+
+        Assert.True(maxRight > 0.01f,
+            $"Очікували crossfeed-відгук у правому каналі: max={maxRight}");
+        Assert.True(maxRight < 0.2f,
+            $"Crossfeed має бути слабким (~0.25): max={maxRight}");
+    }
+
+    [Fact]
+    public void LoudnessNormalization_QuietSignal_IsBoostedTowardTarget()
+    {
+        // Тихий синус із RMS ~0.03: AGC має підняти рівень до цілі ~0.12
+        // (корекція +12 дБ — на межі ліміту підйому).
+        float amplitude = 0.03f * (float)Math.Sqrt(2);
+        var dsp = CreateDsp(Sine(1000.0, amplitude));
+        dsp.IsLoudnessNormalizationEnabled = true;
+
+        double rms = ReadSecondsAndMeasureLast(dsp, totalSeconds: 12, measureSeconds: 2);
+
+        Assert.True(rms > 0.08,
+            $"Тихий сигнал має бути піднятий AGC: rms={rms:F4}");
+        Assert.True(rms < 0.16,
+            $"AGC не має перебирати понад ціль: rms={rms:F4}");
+    }
+
+    [Fact]
+    public void LoudnessNormalization_LoudSignal_IsAttenuatedTowardTarget()
+    {
+        // Гучний синус із RMS ~0.4: AGC має притиснути рівень
+        // (корекція -6 дБ — на межі ліміту притискання).
+        float amplitude = 0.4f * (float)Math.Sqrt(2);
+        var dsp = CreateDsp(Sine(1000.0, amplitude));
+        dsp.IsLoudnessNormalizationEnabled = true;
+
+        double rms = ReadSecondsAndMeasureLast(dsp, totalSeconds: 12, measureSeconds: 2);
+
+        Assert.True(rms < 0.25,
+            $"Гучний сигнал має бути притиснутий AGC: rms={rms:F4}");
+        Assert.True(rms > 0.15,
+            $"AGC не має притискати понад ціль: rms={rms:F4}");
+    }
+
+    [Fact]
+    public void LoudnessNormalization_Disabled_GainReturnsSmoothlyToUnity()
+    {
+        // Після вимкнення AGC гейн плавно повертається до 1 (5 дБ/с):
+        // +12 дБ / 5 дБ/с = 2.4 с, тому через 4 с після вимкнення вихід = вхід.
+        float amplitude = 0.03f * (float)Math.Sqrt(2);
+        var dsp = CreateDsp(Sine(1000.0, amplitude));
+        dsp.IsLoudnessNormalizationEnabled = true;
+
+        ReadSeconds(dsp, totalSeconds: 6); // прогрів: AGC набирає гейн
+        dsp.IsLoudnessNormalizationEnabled = false;
+        double rms = ReadSecondsAndMeasureLast(dsp, totalSeconds: 4, measureSeconds: 1);
+
+        Assert.Equal(0.03, rms, 3);
+    }
+
+    [Fact]
+    public void NewFeatureFlags_DefaultToOff()
+    {
+        var dsp = CreateDsp(_ => 0.1f);
+        Assert.False(dsp.IsLoudnessNormalizationEnabled);
+        Assert.False(dsp.IsStereoWidenEnabled);
+        Assert.False(dsp.IsCrossfeedEnabled);
+        Assert.False(dsp.IsMonoEnabled);
+        Assert.Equal(0f, dsp.Balance);
+    }
+
+    /// <summary>Читає totalSeconds сигналу порціями (як реальний playback).</summary>
+    private static void ReadSeconds(DspProcessor dsp, double totalSeconds)
+    {
+        int totalSamples = (int)(SampleRate * totalSeconds) * Channels;
+        var buffer = new float[totalSamples];
+        int read = 0;
+        while (read < totalSamples)
+        {
+            int chunk = Math.Min(4096, totalSamples - read);
+            int got = dsp.Read(buffer, read, chunk);
+            Assert.Equal(chunk, got);
+            read += got;
+        }
+    }
+
+    /// <summary>
+    /// Читає totalSeconds сигналу порціями і повертає RMS останніх measureSeconds.
+    /// </summary>
+    private static double ReadSecondsAndMeasureLast(DspProcessor dsp, double totalSeconds, double measureSeconds)
+    {
+        int totalSamples = (int)(SampleRate * totalSeconds) * Channels;
+        int measureSamples = (int)(SampleRate * measureSeconds) * Channels;
+        var buffer = new float[totalSamples];
+        int read = 0;
+        while (read < totalSamples)
+        {
+            int chunk = Math.Min(4096, totalSamples - read);
+            int got = dsp.Read(buffer, read, chunk);
+            Assert.Equal(chunk, got);
+            read += got;
+        }
+
+        return Rms(buffer[(totalSamples - measureSamples)..]);
+    }
+
+    /// <summary>RMS одного каналу interleaved-масиву з пропуском перших skipSamples семплів.</summary>
+    private static double ChannelRms(float[] samples, int channel, int channels, int skipSamples)
+    {
+        double sum = 0;
+        int count = 0;
+        for (int i = skipSamples * channels + channel; i < samples.Length; i += channels)
+        {
+            sum += (double)samples[i] * samples[i];
+            count++;
+        }
+        return Math.Sqrt(sum / count);
+    }
+
+    #endregion
+
     [Fact]
     public void Read_ReturnsZeroWhenSourceEmpty()
     {

@@ -75,4 +75,26 @@
     <sys:String x:Key="BassBoost_Label">Bass Boost</sys:String>
     <sys:String x:Key="TrebleBoost_Label">Treble Boost</sys:String>
     <sys:String x:Key="SubBassFilter_Label">Cut sub-bass (30 Hz)</sys:String>
+
+    <!-- Spatial DSP toggles & balance (Equalizer section) -->
+    <sys:String x:Key="Loudness_Label">Loudness normalization</sys:String>
+    <sys:String x:Key="StereoWidth_Label">Stereo width</sys:String>
+    <sys:String x:Key="Crossfeed_Label">Crossfeed (headphones)</sys:String>
+    <sys:String x:Key="Mono_Label">Mono</sys:String>
+    <sys:String x:Key="Balance_Label">Balance L/R (0 — center)</sys:String>
+
+    <!-- Event log (settings) -->
+    <sys:String x:Key="Logging_Label">Enable event logging</sys:String>
+    <sys:String x:Key="OpenLog_Btn">📄 Open log</sys:String>
+
+    <!-- Scheduled night mode (Quiet Hours) -->
+    <sys:String x:Key="QuietHours_Label">Scheduled night mode (applies "Night Mode" preset)</sys:String>
+    <sys:String x:Key="QuietHours_Start">Start:</sys:String>
+    <sys:String x:Key="QuietHours_End">End:</sys:String>
+
+    <!-- Hotkey OSD feedback (tray balloon) -->
+    <sys:String x:Key="OSD_Preset">Preset: {0}</sys:String>
+    <sys:String x:Key="OSD_BypassOn">Bypass: On</sys:String>
+    <sys:String x:Key="OSD_BypassOff">Bypass: Off</sys:String>
+    <sys:String x:Key="OSD_Volume">Volume: {0:F0}%</sys:String>
 </ResourceDictionary>

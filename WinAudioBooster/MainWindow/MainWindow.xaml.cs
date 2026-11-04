@@ -93,6 +93,7 @@ public partial class MainWindow : Window
         _vuTimer.Stop();
         _sleepTimer.Stop();
         _sleepFadeTimer.Stop();
+        _quietHoursTimer.Stop();
         _sliderDebounceCts?.Cancel();
         _appVolumeDebounceCts?.Cancel();
         _hotkeyManager.Dispose();

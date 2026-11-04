@@ -5,6 +5,21 @@
 Формат базується на [Keep a Changelog](https://keepachangelog.com/uk/1.1.0/),
 версіонування — [Semantic Versioning](https://semver.org/lang/uk/).
 
+## [1.2.0] - Unreleased
+
+### Added
+- 🔊 **Loudness normalization** — вирівнювання гучності за цільовим рівнем (RMS AGC): тихі джерела піднімаються, гучні не кліпують.
+- 🎧 **Crossfeed** — ефект «спікерів із навушників» (затримка/змішування протилежного каналу).
+- ↔️ **Stereo widening** — розширення/звуження стереопанорами (M/S-обробка).
+- 🎚️ **Mono / Balance** — перемикання у моно та регулювання балансу L/R.
+- 🎛️ **Чекбокси Balance / Mono / Normalization** — швидке керування новими режимами в головному вікні.
+- 📊 **Spectrum visualizer** — візуалізація спектра в реальному часі з історією піків.
+- 💬 **OSD-фідбек** — екранні підказки при зміні гучності/режимів.
+- 🌙 **Quiet hours** — «тихі години»: автоматичне приглушення у заданий час.
+- ⬆️ **Автооновлення в один клік** — завантаження та встановлення нової версії з GitHub Releases з перевіркою SHA256, бекапом `.bak` і авто-перезапуском (`Services/UpdateService.cs`).
+- 📝 **Файловий лог** — діагностика у `%APPDATA%\WinAudioBooster\log.txt` (`Services/LoggingService.cs`).
+- 🤖 **CI-авто-хеш маніфестів** — job `update-manifests` у release.yml оновлює SHA256 у маніфестах winget та Scoop одразу після публікації релізу.
+
 ## [1.1.0] - Unreleased
 
 ### Added

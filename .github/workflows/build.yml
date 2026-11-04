@@ -3,6 +3,11 @@ name: Build
 on:
   push:
     branches: [ '*' ]
+    # Не перезапускати збірку через авто-коміти хешів маніфестів (job update-manifests
+    # у release.yml) та правки changelog — інакше CI зациклюється сам на собі.
+    paths-ignore:
+      - 'packaging/**'
+      - 'CHANGELOG.md'
   pull_request:
     branches: [ '*' ]
 
