@@ -54,13 +54,18 @@ public class PresetManager
         var gamesShape = new double[] { 4.0, 3.0, 2.0, 0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0 };
         var flat = new double[DspProcessor.BandCount];
 
+        // Нічний режим (ідея Sound Lock / Windows Loudness Equalization):
+        // м'який поріг компресора + низька стеля лімітера — звук не вище комфортного рівня вночі.
+        var nightShape = new double[] { -2.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, -1.0 };
+
         var presets = new List<Preset>
         {
             new() { Name = "Light Boost", IsBuiltIn = true, GainDb = 120, CompressorThresholdDb = -20, CompressorRatio = 2.0f, LimiterCeilingDb = -0.3f, EqGainsDb = (double[])flat.Clone() },
             new() { Name = "Max Boost", IsBuiltIn = true, GainDb = 200, CompressorThresholdDb = -30, CompressorRatio = 4.0f, LimiterCeilingDb = -0.3f, EqGainsDb = (double[])flat.Clone() },
             new() { Name = "Headphones", IsBuiltIn = true, GainDb = 140, CompressorThresholdDb = -25, CompressorRatio = 3.0f, LimiterCeilingDb = -0.5f, EqGainsDb = (double[])vShape.Clone() },
             new() { Name = "Games", IsBuiltIn = true, GainDb = 160, CompressorThresholdDb = -28, CompressorRatio = 5.0f, LimiterCeilingDb = -0.2f, EqGainsDb = (double[])gamesShape.Clone() },
-            new() { Name = "Calls", IsBuiltIn = true, GainDb = 125, CompressorThresholdDb = -18, CompressorRatio = 4.0f, LimiterCeilingDb = -0.5f, EqGainsDb = (double[])callsShape.Clone() }
+            new() { Name = "Calls", IsBuiltIn = true, GainDb = 125, CompressorThresholdDb = -18, CompressorRatio = 4.0f, LimiterCeilingDb = -0.5f, EqGainsDb = (double[])callsShape.Clone() },
+            new() { Name = "Night Mode", IsBuiltIn = true, GainDb = 110, CompressorThresholdDb = -35, CompressorRatio = 6.0f, LimiterCeilingDb = -6.0f, EqGainsDb = (double[])nightShape.Clone() }
         };
 
         foreach (var p in presets) NormalizePreset(p);

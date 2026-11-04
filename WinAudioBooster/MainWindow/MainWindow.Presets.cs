@@ -22,6 +22,40 @@ public partial class MainWindow
         _isApplyingPreset = false;
     }
 
+    /// <summary>
+    /// Спільний метод застосування пресета за назвою (використовується пресетами,
+    /// авто-правилами та профілями пристроїв): виставляє слайдери та синхронізує DSP.
+    /// </summary>
+    internal void ApplyPresetByName(string? presetName)
+    {
+        if (string.IsNullOrWhiteSpace(presetName)) return;
+
+        var preset = _presetManager.LoadAllPresets().FirstOrDefault(p =>
+            p.Name.Equals(presetName, StringComparison.OrdinalIgnoreCase));
+        if (preset == null) return;
+
+        _isApplyingPreset = true;
+        try
+        {
+            // Вибір у ComboBox блокується прапорцем _isApplyingPreset, тому застосовуємо значення вручну
+            PresetsComboBox.SelectedItem = preset;
+            GainSlider.Value = preset.GainDb > 0 ? preset.GainDb : 100;
+            CompThresholdSlider.Value = preset.CompressorThresholdDb;
+            CompRatioSlider.Value = preset.CompressorRatio;
+            LimiterCeilingSlider.Value = preset.LimiterCeilingDb;
+
+            // Еквалайзер: слайдери самі синхронізують DSP через EqSlider_OnValueChanged
+            ApplyEqGainsToSliders(preset.EqGainsDb);
+        }
+        finally
+        {
+            _isApplyingPreset = false;
+        }
+
+        _ = SyncDspParametersAsync();
+        UpdatePresetButtonsState();
+    }
+
     private void PresetsComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isApplyingPreset || PresetsComboBox.SelectedItem is not Preset selectedPreset) return;

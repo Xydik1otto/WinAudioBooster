@@ -32,7 +32,7 @@ public class PresetManagerTests : IDisposable
     {
         var presets = CreateManager().GetBuiltInPresets();
 
-        Assert.Equal(5, presets.Count);
+        Assert.Equal(6, presets.Count);
         foreach (var p in presets)
         {
             Assert.NotNull(p.EqGainsDb);
@@ -178,7 +178,7 @@ public class PresetManagerTests : IDisposable
 
         var all = manager.LoadAllPresets();
 
-        Assert.Equal(6, all.Count);
+        Assert.Equal(7, all.Count);
         Assert.Contains(all, p => p.Name == "Custom One" && !p.IsBuiltIn);
         Assert.Contains(all, p => p.Name == "Headphones" && p.IsBuiltIn);
     }

@@ -1,0 +1,44 @@
+# Маніфест winget (WinGet CLI) — Xydik1otto.WinAudioBooster
+#
+# ⚠️ Це single-file маніфест. У microsoft/winget-pkgs сьогодні очікується
+# мульти-файловий маніфест (1.0.0 / 1.1 / 1.2 / 1.4 / 1.6 yml-частини);
+# перед сабмітом розбийте його на частини згідно з README-uk.md або
+# скористайтеся `wingetcreate new --update` для автогенерації.
+#
+# ❗ InstallerSha256 — ЗАГЛУШКА. Заповнити SHA256 після релізу v1.1.0:
+#   certutil -hashfile WinAudioBooster.exe SHA256
+#   (або `sha256sum WinAudioBooster.exe` у git-bash)
+
+PackageIdentifier: Xydik1otto.WinAudioBooster
+PackageVersion: 1.1.0
+PackageLocale: uk-UA
+Publisher: Xydik1otto
+PackageName: WinAudioBooster
+PackageUrl: https://github.com/Xydik1otto/WinAudioBooster
+License: MIT
+LicenseUrl: https://github.com/Xydik1otto/WinAudioBooster/blob/main/LICENSE
+ShortDescription: Підсилювач гучності Windows до 300% з 10-смуговим еквалайзером, компресором і м'яким лімітером (через VB-Audio CABLE).
+Description: |-
+  WinAudioBooster підсилює гучність системного звуку Windows до 300% через програмний DSP
+  та додає 10-смуговий еквалайзер, компресор і м'який лімітер. Аудіо маршрутизується через
+  віртуальний кабель VB-Audio CABLE, захоплюється через WASAPI loopback, обробляється
+  і виводиться на фізичні динаміки.
+Tags:
+  - audio
+  - sound
+  - volume
+  - booster
+  - equalizer
+  - dsp
+Moniker: winaudiobooster
+Installers:
+  - Architecture: x64
+    InstallerType: portable
+    InstallerUrl: https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.1.0/WinAudioBooster.exe
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000 # ЗАГЛУШКА: заповнити SHA256 після релізу v1.1.0
+    InstallerSwitches:
+      Portable: ''
+    PortableCommandAlias: winaudiobooster
+ManifestType: singleton
+ManifestVersion: 1.4.0
+ReleaseNotesUrl: https://github.com/Xydik1otto/WinAudioBooster/releases/tag/v1.1.0

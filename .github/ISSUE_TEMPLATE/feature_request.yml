@@ -1,0 +1,65 @@
+name: ✨ Пропозиція функції (Feature request)
+description: Запропонувати нову функцію або покращення WinAudioBooster
+labels: ['enhancement', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Дякуємо за ідею! Опишіть її так, щоб зрозуміло було без додаткового контексту.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Яку проблему це вирішує?
+      description: Опишіть сценарій використання. «Мені потрібно, щоб…»
+      placeholder: Мені потрібно, щоб бустер не вимикався при зміні пристрою виводу.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Пропоноване рішення
+      description: Як, на вашу думку, це має працювати?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативи
+      description: Інші способи вирішення, які ви розглядали.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Компонент
+      options:
+        - Бустер / перемикання пристроїв
+        - Еквалайзер / компресор / лімітер (DSP)
+        - Пресети
+        - Мікшер додатків
+        - Інтерфейс / теми / локалізація
+        - Трей / гарячі клавіші / автозапуск
+        - Дистрибуція / встановлення
+        - Інше
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Участь у розробці
+      options:
+        - label: Я готовий(а) допомогти реалізувати цю функцію (PR)
+          required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Додаткова інформація
+      description: Скріншоти, макети, посилання.
+    validations:
+      required: false

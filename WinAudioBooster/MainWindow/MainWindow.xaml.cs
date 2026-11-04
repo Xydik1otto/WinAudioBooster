@@ -27,17 +27,40 @@ public partial class MainWindow : Window
     private MiniMixerWindow? _miniMixerWindow;
     public AudioEngine AudioEngineInstance => _audioEngine;
 
+    // Раннє застосування теми (до InitializeComponent): читаємо збережений вибір і
+    // застосовуємо скін/авто-режим, щоб перший рендер вікна вже мав правильні кольори
+    private void ApplySavedThemeBeforeXamlLoad()
+    {
+        try
+        {
+            var settings = _settingsManager.LoadSettings();
+            string theme = string.IsNullOrEmpty(settings.SelectedTheme) ? "Razer Green" : settings.SelectedTheme;
+            ThemeManager.ApplyTheme(theme);
+        }
+        catch (Exception ex)
+        {
+            // Без збереженої теми — працюємо зі стандартними ресурсами App.xaml
+            Debug.WriteLine($"Early theme apply skipped: {ex.Message}");
+        }
+    }
+
     public MainWindow()
     {
+        // Застосовуємо збережену тему ДО парсингу XAML: StaticResource-кольори вікна
+        // одразу захоплять правильні пензлі (скін + світлий overlay за потреби)
+        ApplySavedThemeBeforeXamlLoad();
+
         InitializeComponent();
 
         InitializeTrayAndHotkeys();
         LoadPhysicalOutputDevices();
         LoadSavedSettingsAndPresets();
+        InitializeDeviceProfiles();
 
         InitializeAudio();
         InitializeAppDetector();
         InitializeVuTimer();
+        InitializeSleepTimer();
 
         _ = RefreshActiveAppSessionsAsync();
         AutoStartCheckBox.IsChecked = _autoStartService.IsAutoStartEnabled();
@@ -68,6 +91,8 @@ public partial class MainWindow : Window
         _deviceMonitor.Dispose();
         SaveCurrentSettings();
         _vuTimer.Stop();
+        _sleepTimer.Stop();
+        _sleepFadeTimer.Stop();
         _sliderDebounceCts?.Cancel();
         _appVolumeDebounceCts?.Cancel();
         _hotkeyManager.Dispose();
@@ -75,6 +100,7 @@ public partial class MainWindow : Window
         _volumeManager.Dispose();
         _appDetector.Dispose();
         _audioEngine.Dispose();
+        ThemeManager.Shutdown();
         base.OnClosed(e);
     }
 }

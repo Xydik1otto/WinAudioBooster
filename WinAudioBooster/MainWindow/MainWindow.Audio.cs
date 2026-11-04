@@ -2,6 +2,12 @@ namespace WinAudioBooster;
 
 public partial class MainWindow
 {
+    // Захист слуху: попередження показується лише один раз за запуск додатку
+    private bool _hearingProtectionShown = false;
+
+    // Поріг підсилення (%), вище якого показуємо попередження про ризик для слуху
+    private const double HearingProtectionLimitPercent = 150.0;
+
     private async void InitializeAudio()
     {
         // 1. Моніторинг підключення/відключення навушників та динаміків
@@ -259,6 +265,8 @@ public partial class MainWindow
     {
         if (GainValueText != null) GainValueText.Text = $"{e.NewValue:F0}%";
 
+        MaybeShowHearingProtectionWarning(e.NewValue);
+
         _sliderDebounceCts?.Cancel();
         _sliderDebounceCts = new CancellationTokenSource();
         var token = _sliderDebounceCts.Token;
@@ -292,6 +300,37 @@ public partial class MainWindow
         _miniMixerWindow?.SyncWithMainWindow();
 
         if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
+    }
+
+    /// <summary>
+    /// Захист слуху: при підсиленні &gt;150% один раз на запуск показує попередження.
+    /// Не спрацьовує під час ініціалізації та автоматичного застосування пресета/профіля.
+    /// </summary>
+    private void MaybeShowHearingProtectionWarning(double newValue)
+    {
+        if (_hearingProtectionShown) return;
+        if (newValue <= HearingProtectionLimitPercent) return;
+        if (_isInitializing || _isApplyingPreset) return;
+        if (HearingProtectionCheckBox == null || HearingProtectionCheckBox.IsChecked != true) return;
+
+        _hearingProtectionShown = true;
+
+        string title = TryFindResource("HearingProtection_Title") as string ?? "Захист слуху";
+        string message = TryFindResource("HearingProtection_Message") as string ??
+            "Рівень підсилення більше 150% може пошкодити ваш слух.\n\n«Так» — продовжити,\n«Ні» — зменшити до 150%.";
+
+        var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+        if (result == MessageBoxResult.No)
+        {
+            // Зменшуємо до 150%: повторний виклик ValueChanged не покаже попередження (150 <= поріг)
+            GainSlider.Value = HearingProtectionLimitPercent;
+        }
+    }
+
+    private void HearingProtectionCheckBox_OnClick(object sender, RoutedEventArgs e)
+    {
+        SaveCurrentSettings();
     }
 
     private void CompThresholdSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

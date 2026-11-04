@@ -207,18 +207,63 @@ public class DspProcessorTests
     }
 
     [Fact]
-    public void GainDb_ConvertsToLinearGain()
+    public void GainDb_SlewLimited_PartiallyAppliedRightAfterChange()
     {
-        // Через публічну поведінку: постійний вхід 0.1, GainDb=6 -> вихід ~0.1 * 10^(6/20)
+        // Нова семантика: GainDb — лише ціль. Одразу після зміни гейн
+        // застосовується частково (slew limiting, 60 дБ/с), а не миттєво.
         var dsp = CreateDsp(_ => 0.1f);
-        dsp.GainDb = 6f;
+        dsp.GainDb = 20f; // ціль x10
 
-        var samples = ReadAll(dsp, 64);
-        float expected = 0.1f * (float)Math.Pow(10, 6.0 / 20.0);
+        var samples = ReadAll(dsp, 64); // ~1.5 мс сигналу — гейн майже не зрушив
+        float maxSample = samples.Max(Math.Abs);
+        Assert.True(maxSample < 0.11f,
+            $"Гейн має застосовуватися плавно, а не миттєво: max={maxSample}");
+    }
+
+    [Fact]
+    public void GainDb_SlewLimited_ReachesTargetAfterSeriesOfReads()
+    {
+        var dsp = CreateDsp(_ => 0.1f);
+        dsp.GainDb = 20f; // 20 дБ при 60 дБ/с = ~333 мс = ~14 700 семплів
+
+        var settled = ReadAll(dsp, 30000);
+        float expected = 0.1f * 10f; // цільовий лінійний гейн x10
+        Assert.Equal(expected, settled[^1], 3);
+    }
+
+    [Fact]
+    public void Limiter_PeaksStayWithinCeiling_WhenGainTargetRaisedMidStream()
+    {
+        var dsp = CreateDsp(_ => 0.9f);
+        dsp.IsCompressorEnabled = false;
+        dsp.IsLimiterEnabled = true;
+        dsp.GainDb = 0f;
+        ReadAll(dsp, 512);
+
+        // Піднімаємо ціль посеред потоку: навіть поки гейн плавно набирається,
+        // піки не виходять за стелю лімітера.
+        dsp.GainDb = 40f;
+        float ceilingLinear = (float)Math.Pow(10, dsp.LimiterCeilingDb / 20.0);
+        var samples = ReadAll(dsp, 8192);
         foreach (float s in samples)
         {
-            Assert.Equal(expected, s, 4);
+            Assert.True(Math.Abs(s) <= ceilingLinear + 1e-3f,
+                $"Пік {s} перевищує стелю {ceilingLinear}");
         }
+    }
+
+    [Fact]
+    public void GainDb_SlewAdvancesWhileDisabled_NoJumpOnReEnable()
+    {
+        var dsp = CreateDsp(_ => 0.1f);
+        dsp.IsEnabled = false;
+        dsp.GainDb = 20f;
+
+        ReadAll(dsp, 30000); // поки DSP вимкнено, гейн встигає догнати ціль
+
+        dsp.IsEnabled = true;
+        var samples = ReadAll(dsp, 64);
+        Assert.Equal(0.1f * 10f, samples[0], 3); // без стрибка після увімкнення
     }
 
     [Fact]
@@ -274,6 +319,91 @@ public class DspProcessorTests
             Assert.Equal(0.5f, s, 5);
         }
     }
+
+    #region Бас-буст, treble-буст і суб-бас фільтр
+
+    [Fact]
+    public void BassBoost_SineAt60Hz_GetsLouder()
+    {
+        // Синус 60 Гц — у межах low shelf на 90 Гц, моно
+        var flatDsp = CreateDsp(Sine(60.0), channels: 1);
+        double baselineRms = Rms(ReadAll(flatDsp, SampleRate / 2));
+
+        var boostedDsp = CreateDsp(Sine(60.0), channels: 1);
+        boostedDsp.IsBassBoostEnabled = true;
+        double boostedRms = Rms(ReadAll(boostedDsp, SampleRate / 2));
+
+        Assert.True(boostedRms > baselineRms * 1.3,
+            $"Очікували підйом баса: baseline={baselineRms:F4}, boosted={boostedRms:F4}");
+    }
+
+    [Fact]
+    public void BassBoost_Disabled_RestoresBaselineLevel()
+    {
+        var dsp = CreateDsp(Sine(60.0), channels: 1);
+        dsp.IsBassBoostEnabled = true;
+        ReadAll(dsp, SampleRate / 2); // обробка з увімкненим бустом
+
+        dsp.IsBassBoostEnabled = false;
+        double rms = Rms(ReadAll(dsp, SampleRate / 2));
+        Assert.Equal(0.5 / Math.Sqrt(2), rms, 3);
+    }
+
+    [Fact]
+    public void TrebleBoost_SineAt12kHz_GetsLouder()
+    {
+        // Синус 12 кГц — вище high shelf на 9 кГц, моно
+        var flatDsp = CreateDsp(Sine(12000.0), channels: 1);
+        double baselineRms = Rms(ReadAll(flatDsp, SampleRate / 4));
+
+        var boostedDsp = CreateDsp(Sine(12000.0), channels: 1);
+        boostedDsp.IsTrebleBoostEnabled = true;
+        double boostedRms = Rms(ReadAll(boostedDsp, SampleRate / 4));
+
+        Assert.True(boostedRms > baselineRms * 1.2,
+            $"Очікували підйом верхів: baseline={baselineRms:F4}, boosted={boostedRms:F4}");
+    }
+
+    [Fact]
+    public void TrebleBoost_Disabled_RestoresBaselineLevel()
+    {
+        var dsp = CreateDsp(Sine(12000.0), channels: 1);
+        dsp.IsTrebleBoostEnabled = true;
+        ReadAll(dsp, SampleRate / 4);
+
+        dsp.IsTrebleBoostEnabled = false;
+        double rms = Rms(ReadAll(dsp, SampleRate / 4));
+        Assert.Equal(0.5 / Math.Sqrt(2), rms, 3);
+    }
+
+    [Fact]
+    public void SubBassFilter_SineAt25Hz_GetsQuieter()
+    {
+        // Синус 25 Гц — нижче HPF на 30 Гц, моно; довше вікно через низьку частоту
+        var flatDsp = CreateDsp(Sine(25.0), channels: 1);
+        double baselineRms = Rms(ReadAll(flatDsp, SampleRate / 2));
+
+        var filteredDsp = CreateDsp(Sine(25.0), channels: 1);
+        filteredDsp.IsSubBassFilterEnabled = true;
+        double filteredRms = Rms(ReadAll(filteredDsp, SampleRate / 2));
+
+        Assert.True(filteredRms < baselineRms * 0.85,
+            $"Очікували зріз суб-баса: baseline={baselineRms:F4}, filtered={filteredRms:F4}");
+    }
+
+    [Fact]
+    public void SubBassFilter_Disabled_RestoresBaselineLevel()
+    {
+        var dsp = CreateDsp(Sine(25.0), channels: 1);
+        dsp.IsSubBassFilterEnabled = true;
+        ReadAll(dsp, SampleRate / 2);
+
+        dsp.IsSubBassFilterEnabled = false;
+        double rms = Rms(ReadAll(dsp, SampleRate / 2));
+        Assert.Equal(0.5 / Math.Sqrt(2), rms, 3);
+    }
+
+    #endregion
 
     [Fact]
     public void Read_ReturnsZeroWhenSourceEmpty()

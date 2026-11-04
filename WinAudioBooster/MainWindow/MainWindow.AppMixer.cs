@@ -39,6 +39,34 @@ public partial class MainWindow
             : selectedOutputInfo?.Device;
 
         var activeSessions = await _appVolumeService.GetActiveAudioSessionsAsync(targetDevice);
+
+        // Персистентність гучності per-app: застосовуємо збережені відсотки до відповідних процесів
+        try
+        {
+            var settings = _settingsManager.LoadSettings();
+            if (targetDevice != null && settings.AppVolumeRules.Count > 0)
+            {
+                var applyTasks = new List<Task>();
+                foreach (var session in activeSessions)
+                {
+                    string procName = ResolveProcessName(session.ProcessId, session.ProcessName);
+                    var rule = settings.AppVolumeRules.FirstOrDefault(r =>
+                        r.ProcessName.Equals(procName, StringComparison.OrdinalIgnoreCase));
+                    if (rule == null) continue;
+
+                    // Оновлюємо модель, щоб повзунок у UI одразу показав збережене значення
+                    session.VolumePercent = rule.VolumePercent;
+                    applyTasks.Add(_appVolumeService.SetAppVolumeAndBoostAsync(targetDevice, session.ProcessId, rule.VolumePercent));
+                }
+
+                if (applyTasks.Count > 0) await Task.WhenAll(applyTasks);
+            }
+        }
+        catch
+        {
+            // Автозастосування не критичне: показуємо сесії як є
+        }
+
         AppMixerItemsControl.ItemsSource = activeSessions;
     }
 
@@ -46,6 +74,10 @@ public partial class MainWindow
     {
         if (sender is Slider slider && slider.Tag is int pid)
         {
+            // Персистентність per-app: запам'ятовуємо останнє значення для цього процесу (синхронно)
+            string procName = ResolveProcessName(pid, fallback: null);
+            SaveAppVolumeRule(procName, e.NewValue);
+
             _appVolumeDebounceCts?.Cancel();
             _appVolumeDebounceCts = new CancellationTokenSource();
             var token = _appVolumeDebounceCts.Token;
@@ -66,6 +98,60 @@ public partial class MainWindow
 
                 await _appVolumeService.SetAppVolumeAndBoostAsync(targetDevice, pid, val);
             }, token);
+        }
+    }
+
+    /// <summary>Повертає ім'я процесу (нормалізоване, з .exe) для ключа правил гучності.</summary>
+    private static string ResolveProcessName(int processId, string? fallback)
+    {
+        try
+        {
+            var proc = Process.GetProcessById(processId);
+            string name = proc.ProcessName;
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                    ? name
+                    : name + ".exe";
+            }
+        }
+        catch
+        {
+            // Процес міг завершитися — використовуємо fallback
+        }
+
+        return fallback ?? string.Empty;
+    }
+
+    /// <summary>Синхронне збереження правила гучності процесу (load-modify-save, як для інших налаштувань).</summary>
+    private void SaveAppVolumeRule(string? processName, double volumePercent)
+    {
+        if (string.IsNullOrWhiteSpace(processName)) return;
+
+        try
+        {
+            var settings = _settingsManager.LoadSettings();
+            var rule = settings.AppVolumeRules.FirstOrDefault(r =>
+                r.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
+
+            if (rule != null)
+            {
+                rule.VolumePercent = volumePercent;
+            }
+            else
+            {
+                settings.AppVolumeRules.Add(new AppVolumeRule
+                {
+                    ProcessName = processName,
+                    VolumePercent = volumePercent
+                });
+            }
+
+            _settingsManager.SaveSettings(settings);
+        }
+        catch
+        {
+            // Збереження не критичне: гучність все одно застосована до сесії
         }
     }
 

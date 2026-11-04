@@ -35,7 +35,11 @@ public class AudioEngine : IDisposable
             _waveBuffer = new BufferedWaveProvider(_capture.WaveFormat)
             {
                 DiscardOnBufferOverflow = true,
-                BufferDuration = TimeSpan.FromSeconds(2),
+                // Буфер лише згладжує тремтіння таймерів: DataAvailable надходить
+                // кожні ~10 мс, тому 250 мс вміщує запас на ~25 пропущених
+                // колбеків. ReadFully=true дає тишу, якщо буфер усе ж спорожнів
+                // (безпечний захист від underrun'ів замість 2 с накопиченої затримки).
+                BufferDuration = TimeSpan.FromMilliseconds(250),
                 ReadFully = true
             };
 
@@ -71,7 +75,11 @@ public class AudioEngine : IDisposable
                 finalWaveProvider = _dspProcessor.ToWaveProvider();
             }
 
-            _output = new WasapiOut(outputSpeakerDevice, AudioClientShareMode.Shared, false, 50);
+            // 30 мс замість 50: помітно нижча латентність і все ще безпечний
+            // запас для shared-режиму. Низький пріоритет потоку відтворення
+            // змінити не можна: WasapiOut створює власний потік усередині,
+            // публічного доступу до нього NAudio не надає.
+            _output = new WasapiOut(outputSpeakerDevice, AudioClientShareMode.Shared, false, 30);
             _output.PlaybackStopped += (s, e) =>
             {
                 if (e.Exception != null)

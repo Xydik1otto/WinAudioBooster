@@ -4,18 +4,19 @@ public partial class MainWindow
 {
     private void InitializeTrayAndHotkeys()
     {
+        // Авто-тема: стежимо за зміною світлої/темної теми Windows
+        ThemeManager.InitializeSystemThemeWatcher();
+
         Loaded += (s, e) =>
         {
             _hotkeyManager.Register(this, HotkeyManager.ModControl | HotkeyManager.ModAlt, 0x42);
 
-            _hotkeyManager.HotkeyPressed += (sender, args) =>
+            // Фіксовані хоткеї: Ctrl+Alt+1..5 → пресети 1..5, Ctrl+Alt+D → bypass DSP
+            RegisterFixedHotkeys();
+
+            _hotkeyManager.HotkeyPressedById += (sender, id) =>
             {
-                Dispatcher.Invoke(() =>
-                {
-                    EnableBoosterCheckBox.IsChecked = !(EnableBoosterCheckBox.IsChecked == true);
-                    RestartAudioEngineIfEnabled();
-                    SaveCurrentSettings();
-                });
+                Dispatcher.Invoke(() => OnGlobalHotkey(id));
             };
         };
 
@@ -33,6 +34,53 @@ public partial class MainWindow
         );
     }
 
+    // Реєструє фіксовані хоткеї: Ctrl+Alt+1..5 (пресети 1..5) та Ctrl+Alt+D (bypass DSP)
+    private void RegisterFixedHotkeys()
+    {
+        uint mods = HotkeyManager.ModControl | HotkeyManager.ModAlt;
+
+        // VK-коди '1'..'5' = 0x31..0x35
+        for (int i = 0; i < 5; i++)
+        {
+            _hotkeyManager.Register(this, mods, (uint)(0x31 + i), HotkeyManager.PresetHotkeyBaseId + i);
+        }
+
+        // VK-код 'D' = 0x44
+        _hotkeyManager.Register(this, mods, 0x44, HotkeyManager.BypassHotkeyId);
+    }
+
+    // Той самий механізм, що й у Ctrl+Alt+B: toggle чекбокса бустера + перезапуск движка
+    private void ToggleBoosterViaHotkey()
+    {
+        EnableBoosterCheckBox.IsChecked = !(EnableBoosterCheckBox.IsChecked == true);
+        RestartAudioEngineIfEnabled();
+        SaveCurrentSettings();
+    }
+
+    // Маршрутизація глобальних хоткеїв за ідентифікатором
+    private void OnGlobalHotkey(int hotkeyId)
+    {
+        if (hotkeyId == HotkeyManager.MainHotkeyId || hotkeyId == HotkeyManager.BypassHotkeyId)
+        {
+            ToggleBoosterViaHotkey();
+            return;
+        }
+
+        if (hotkeyId >= HotkeyManager.PresetHotkeyBaseId && hotkeyId < HotkeyManager.PresetHotkeyBaseId + 5)
+        {
+            ApplyPresetByHotkeyIndex(hotkeyId - HotkeyManager.PresetHotkeyBaseId);
+        }
+    }
+
+    // Застосувати N-й пресет зі списку _presetManager.LoadAllPresets() (порядок як у ComboBox)
+    private void ApplyPresetByHotkeyIndex(int index)
+    {
+        var presets = _presetManager.LoadAllPresets();
+        if (index < 0 || index >= presets.Count) return;
+
+        ApplyPresetByName(presets[index].Name);
+    }
+
     private void LoadSavedSettingsAndPresets()
     {
         var settings = _settingsManager.LoadSettings();
@@ -47,6 +95,9 @@ public partial class MainWindow
 
         // Еквалайзер: слайдери, дБ-підписи та DSP
         ApplyEqToDspAndSettings(settings);
+
+        // Швидкі DSP-тоггли: Bass Boost / Treble Boost / Cut sub-bass
+        ApplyBoostTogglesToDsp(settings);
 
         if (OutputDeviceComboBox.ItemsSource is List<AudioDeviceInfo> physicalDevices && physicalDevices.Count > 0)
         {
@@ -78,12 +129,18 @@ public partial class MainWindow
         }
 
         EnableBoosterCheckBox.IsChecked = settings.IsBoosterEnabled;
+        HearingProtectionCheckBox.IsChecked = settings.IsHearingProtectionEnabled;
+        SleepTimerComboBox.SelectedIndex = 0; // за замовчуванням "Вимк" (обробник пропускається під час ініціалізації)
         UpdateAllUiTexts();
     }
 
     private void SaveCurrentSettings()
     {
         var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
+
+        // Списки, які керуються окремими редакторами (профілі пристроїв, правила гучності),
+        // переносимо з поточного файлу налаштувань, щоб не втратити їх при збереженні
+        var existing = _settingsManager.LoadSettings();
 
         var settings = new AppSettings
         {
@@ -95,10 +152,17 @@ public partial class MainWindow
             GainDb = GainSlider.Value,
             CompressorThresholdDb = CompThresholdSlider.Value,
             CompressorRatio = CompRatioSlider.Value,
-            SelectedTheme = (ThemeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Razer Green",
+            SelectedTheme = (ThemeComboBox.SelectedItem as ComboBoxItem)?.Tag as string
+                ?? (ThemeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Razer Green",
             LimiterCeilingDb = LimiterCeilingSlider.Value,
             IsEqEnabled = EqEnabledCheckBox.IsChecked == true,
-            EqGainsDb = GetEqGainsFromSliders()
+            EqGainsDb = GetEqGainsFromSliders(),
+            IsBassBoostEnabled = BassBoostCheckBox.IsChecked == true,
+            IsTrebleBoostEnabled = TrebleBoostCheckBox.IsChecked == true,
+            IsSubBassFilterEnabled = SubBassFilterCheckBox.IsChecked == true,
+            DevicePresetBindings = existing.DevicePresetBindings,
+            AppVolumeRules = existing.AppVolumeRules,
+            IsHearingProtectionEnabled = HearingProtectionCheckBox.IsChecked == true
         };
 
         _settingsManager.SaveSettings(settings);
@@ -107,6 +171,9 @@ public partial class MainWindow
     private void SaveCurrentSettingsWithHotkey(uint modifiers, uint vKey, string displayName)
     {
         var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
+
+        // Списки, які керуються окремими редакторами, переносимо з поточного файлу налаштувань
+        var existing = _settingsManager.LoadSettings();
 
         var settings = new AppSettings
         {
@@ -121,6 +188,12 @@ public partial class MainWindow
             LimiterCeilingDb = LimiterCeilingSlider.Value,
             IsEqEnabled = EqEnabledCheckBox.IsChecked == true,
             EqGainsDb = GetEqGainsFromSliders(),
+            IsBassBoostEnabled = BassBoostCheckBox.IsChecked == true,
+            IsTrebleBoostEnabled = TrebleBoostCheckBox.IsChecked == true,
+            IsSubBassFilterEnabled = SubBassFilterCheckBox.IsChecked == true,
+            DevicePresetBindings = existing.DevicePresetBindings,
+            AppVolumeRules = existing.AppVolumeRules,
+            IsHearingProtectionEnabled = HearingProtectionCheckBox.IsChecked == true,
             HotkeyModifiers = modifiers,
             HotkeyVKey = vKey,
             HotkeyDisplayName = displayName
@@ -196,7 +269,9 @@ public partial class MainWindow
     {
         foreach (ComboBoxItem item in ThemeComboBox.Items)
         {
-            if (item.Content?.ToString() == themeName)
+            // Порівнюємо спочатку Tag (стабільне значення для збереження), потім Content
+            string itemValue = item.Tag as string ?? item.Content?.ToString() ?? string.Empty;
+            if (itemValue == themeName)
             {
                 ThemeComboBox.SelectedItem = item;
                 break;
@@ -208,9 +283,21 @@ public partial class MainWindow
     {
         if (_isInitializing) return;
 
-        if (ThemeComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Content?.ToString() is string themeName)
+        if (ThemeComboBox.SelectedItem is ComboBoxItem selectedItem)
         {
-            ThemeManager.ApplyTheme(themeName);
+            // Tag — стабільний ідентифікатор теми (незалежний від мови інтерфейсу)
+            string themeName = selectedItem.Tag as string ?? selectedItem.Content?.ToString() ?? string.Empty;
+
+            if (themeName == ThemeManager.AutoThemeName)
+            {
+                // Авто-режим: база — Windows 11 Fluent, світла тема Windows перекривається overlay
+                ThemeManager.SetAutoMode("Windows 11");
+            }
+            else
+            {
+                ThemeManager.ApplyTheme(themeName);
+            }
+
             SaveCurrentSettings();
         }
     }

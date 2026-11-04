@@ -19,10 +19,24 @@ public class AppSettings
     public bool IsEqEnabled { get; set; } = true;
     public double[] EqGainsDb { get; set; } = new double[DspProcessor.BandCount];
 
+    // Швидкі DSP-тоггли (чекбокси в секції Еквалайзер)
+    public bool IsBassBoostEnabled { get; set; } = false;
+    public bool IsTrebleBoostEnabled { get; set; } = false;
+    public bool IsSubBassFilterEnabled { get; set; } = false;
+
     public uint HotkeyModifiers { get; set; } = 3;
     public uint HotkeyVKey { get; set; } = 0x42;
     public string HotkeyDisplayName { get; set; } = "Ctrl + Alt + B";
     public string SelectedTheme { get; set; } = "Razer Green";
 
     public List<ProcessRule> CustomRules { get; set; } = new();
+
+    // Прив'язки «пристрій виводу → пресет» (авто-профілі за пристроєм)
+    public List<DevicePresetBinding> DevicePresetBindings { get; set; } = new();
+
+    // Запам'ятовані гучності процесів (per-app персистентність)
+    public List<AppVolumeRule> AppVolumeRules { get; set; } = new();
+
+    // Захист слуху: попередження при підсиленні >150% (один раз на запуск додатку)
+    public bool IsHearingProtectionEnabled { get; set; } = true;
 }

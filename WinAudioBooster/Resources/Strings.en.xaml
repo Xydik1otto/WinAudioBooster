@@ -46,4 +46,33 @@
 
     <sys:String x:Key="InstallCable_Btn">Install VB-Cable</sys:String>
     <sys:String x:Key="CableInstalled_Btn">Driver Installed</sys:String>
+
+    <!-- Hearing protection -->
+    <sys:String x:Key="HearingProtection_Label">Hearing protection (warn above &gt;150% gain)</sys:String>
+    <sys:String x:Key="HearingProtection_Title">Hearing Protection</sys:String>
+    <sys:String x:Key="HearingProtection_Message">Gain above 150% may cause permanent hearing damage.&#10;&#10;"Yes" — continue at this level,&#10;"No" — reduce to 150%.</sys:String>
+
+    <!-- Device profiles -->
+    <sys:String x:Key="DeviceProfiles_Group">Device Profiles</sys:String>
+    <sys:String x:Key="DeviceProfiles_Device">Output device</sys:String>
+    <sys:String x:Key="DeviceProfiles_Preset">Preset</sys:String>
+    <sys:String x:Key="DeviceProfiles_Add">Add Binding</sys:String>
+
+    <!-- Auto theme (follows Windows) -->
+    <sys:String x:Key="Theme_Auto">Auto (Windows)</sys:String>
+
+    <!-- Extra fixed global hotkeys -->
+    <sys:String x:Key="Hotkeys_ExtraInfo">Hotkeys: Ctrl+Alt+1…5 — apply preset 1–5, Ctrl+Alt+D — DSP bypass (booster on/off).</sys:String>
+
+    <!-- Sleep timer -->
+    <sys:String x:Key="SleepTimer_Label">Sleep timer</sys:String>
+    <sys:String x:Key="SleepTimer_Off">Off</sys:String>
+    <sys:String x:Key="SleepTimer_15Min">15 min</sys:String>
+    <sys:String x:Key="SleepTimer_30Min">30 min</sys:String>
+    <sys:String x:Key="SleepTimer_60Min">60 min</sys:String>
+
+    <!-- Quick DSP toggles (Equalizer section) -->
+    <sys:String x:Key="BassBoost_Label">Bass Boost</sys:String>
+    <sys:String x:Key="TrebleBoost_Label">Treble Boost</sys:String>
+    <sys:String x:Key="SubBassFilter_Label">Cut sub-bass (30 Hz)</sys:String>
 </ResourceDictionary>

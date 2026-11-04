@@ -1,0 +1,90 @@
+name: 🐛 Звіт про баг (Bug report)
+description: Повідомити про несправність у WinAudioBooster
+labels: ['bug', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Дякуємо, що повідомляєте про баг! Будь ласка, заповніть форму якомога детальніше.
+        Для питань використання створюйте окреме Issue з міткою `question`.
+
+  - type: input
+    id: version
+    attributes:
+      label: Версія WinAudioBooster
+      description: Версія з GitHub Releases або дата збірки з сорців.
+      placeholder: 'напр. 1.0.1'
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Версія Windows
+      description: Наприклад, Windows 11 24H2 x64.
+      placeholder: 'Windows 11 24H2 x64'
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Кроки відтворення
+      description: Послідовність дій, яка призводить до проблеми.
+      placeholder: |
+        1. Запустити WinAudioBooster.exe
+        2. Увімкнути бустер
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Очікувана поведінка
+      placeholder: Звук продовжує відтворюватися без заїкання.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактична поведінка
+      description: Що сталося насправді. Додайте скріншоти/логи, якщо є.
+      placeholder: Звук зникає після перемикання пристрою.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: vb-cable
+    attributes:
+      label: Чи встановлено VB-Audio CABLE?
+      options:
+        - 'Так, встановлено'
+        - 'Ні, не встановлено'
+        - 'Не впевнений'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Компонент
+      options:
+        - Бустер / перемикання пристроїв
+        - Еквалайзер / компресор / лімітер (DSP)
+        - Пресети
+        - Мікшер додатків
+        - Інтерфейс / теми / локалізація
+        - Трей / гарячі клавіші / автозапуск
+        - Інше
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Додаткова інформація
+      description: Логи, скріншоти, відео, умови відтворення.
+    validations:
+      required: false

@@ -46,4 +46,33 @@
 
     <sys:String x:Key="InstallCable_Btn">Установити VB-Cable</sys:String>
     <sys:String x:Key="CableInstalled_Btn">Драйвер встановлено</sys:String>
+
+    <!-- Захист слуху -->
+    <sys:String x:Key="HearingProtection_Label">Захист слуху (попередження при підсиленні &gt;150%)</sys:String>
+    <sys:String x:Key="HearingProtection_Title">Захист слуху</sys:String>
+    <sys:String x:Key="HearingProtection_Message">Рівень підсилення більше 150% може призвести до незворотного пошкодження слуху.&#10;&#10;«Так» — продовжити на цьому рівні,&#10;«Ні» — зменшити до 150%.</sys:String>
+
+    <!-- Профілі пристроїв -->
+    <sys:String x:Key="DeviceProfiles_Group">Профілі пристроїв</sys:String>
+    <sys:String x:Key="DeviceProfiles_Device">Пристрій виводу</sys:String>
+    <sys:String x:Key="DeviceProfiles_Preset">Пресет</sys:String>
+    <sys:String x:Key="DeviceProfiles_Add">Додати прив'язку</sys:String>
+
+    <!-- Авто-тема за Windows -->
+    <sys:String x:Key="Theme_Auto">Авто (Windows)</sys:String>
+
+    <!-- Додаткові фіксовані глобальні хоткеї -->
+    <sys:String x:Key="Hotkeys_ExtraInfo">Гарячі клавіші: Ctrl+Alt+1…5 — застосувати пресет 1–5, Ctrl+Alt+D — bypass DSP (увімк/вимк бустер).</sys:String>
+
+    <!-- Таймер сну -->
+    <sys:String x:Key="SleepTimer_Label">Таймер сну</sys:String>
+    <sys:String x:Key="SleepTimer_Off">Вимк</sys:String>
+    <sys:String x:Key="SleepTimer_15Min">15 хв</sys:String>
+    <sys:String x:Key="SleepTimer_30Min">30 хв</sys:String>
+    <sys:String x:Key="SleepTimer_60Min">60 хв</sys:String>
+
+    <!-- Швидкі DSP-тоггли (секція Еквалайзер) -->
+    <sys:String x:Key="BassBoost_Label">Bass Boost</sys:String>
+    <sys:String x:Key="TrebleBoost_Label">Treble Boost</sys:String>
+    <sys:String x:Key="SubBassFilter_Label">Cut sub-bass (30 Гц)</sys:String>
 </ResourceDictionary>

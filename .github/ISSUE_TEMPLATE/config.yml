@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Питання щодо використання
+    url: https://github.com/Xydik1otto/WinAudioBooster/discussions
+    description: Питання, як щось налаштувати чи чи працює функція — тут, а не в баг-трекері.
+  - name: 🔒 Вразливості (безпека)
+    url: https://github.com/Xydik1otto/WinAudioBooster/security/advisories/new
+    description: Приватний репорт вразливостей через GitHub Security Advisories (див. SECURITY.md).

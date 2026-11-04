@@ -37,8 +37,27 @@ jobs:
       - name: Publish single-file win-x64
         run: dotnet publish WinAudioBooster/WinAudioBooster.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 
-      - name: Upload artifact to GitHub Release
+      # --- Inno Setup інсталятор (опційний артефакт) ---
+      # Падіння цього кроку НЕ має ламати реліз: continue-on-error: true,
+      # тому exe опублікується навіть якщо Inno Setup недоступний або .iss має помилку.
+      - name: Install Inno Setup
+        id: inno
+        run: choco install innosetup -y --no-progress
+        continue-on-error: true
+
+      - name: Build installer with Inno Setup
+        if: ${{ steps.inno.outcome == 'success' }}
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "${env:ProgramFiles}\Inno Setup 6\ISCC.exe" }
+          Write-Host "Using ISCC: $iscc"
+          & $iscc "packaging/innosetup/WinAudioBooster-Setup.iss"
+        continue-on-error: true
+
+      - name: Upload artifact to GitHub Release (exe + installer, if built)
         uses: softprops/action-gh-release@v2
         with:
-          files: WinAudioBooster/bin/Release/net8.0-windows/win-x64/publish/WinAudioBooster.exe
+          files: |
+            WinAudioBooster/bin/Release/net8.0-windows/win-x64/publish/WinAudioBooster.exe
+            build/installer/WinAudioBooster-Setup-*.exe
           generate_release_notes: true

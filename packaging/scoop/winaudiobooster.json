@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Scoop manifest для WinAudioBooster.",
+    "ЧЕКЛИСТ перед сабмітом (в scoop bucket 'extras' або власному bucket):",
+    "1. Дочекатися релізу v1.1.0 і завантажити WinAudioBooster.exe з URL нижче.",
+    "2. Обчислити SHA256: certutil -hashfile WinAudioBooster.exe SHA256 (або sha256sum).",
+    "3. Замінити заглушку 'hash' (зараз 64 нулі) на реальний хеш.",
+    "4. Оновити 'version', 'notes'/'checkver' якщо потрібно; url має вести на тег v1.1.0.",
+    "5. Сабміт: PR у https://github.com/ScoopInstaller/Extras ( Extras bucket) або власний bucket.",
+    "6. Local перевірка: scoop install <шлях-до-JSON> або scoop checkup / scoop bucket add."
+  ],
+  "version": "1.1.0",
+  "description": "Volume booster for Windows up to 300% with 10-band EQ, compressor and soft limiter (via VB-Audio CABLE)",
+  "homepage": "https://github.com/Xydik1otto/WinAudioBooster",
+  "license": "MIT",
+  "url": "https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.1.0/WinAudioBooster.exe",
+  "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "notes": "Single-file portable build. VB-Audio CABLE driver is offered for installation on first launch.",
+  "bin": [["WinAudioBooster.exe", "winaudiobooster"]],
+  "shortcuts": [["WinAudioBooster.exe", "WinAudioBooster"]],
+  "checkver": "github",
+  "autoupdate": {
+    "url": "https://github.com/Xydik1otto/WinAudioBooster/releases/download/v$version/WinAudioBooster.exe"
+  }
+}

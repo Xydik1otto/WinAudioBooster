@@ -66,6 +66,46 @@ public partial class MainWindow
         if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
     }
 
+    // Один обробник для трьох швидких DSP-тогглів (Tag = Bass | Treble | SubBass)
+    private void DspBoostToggle_OnChecked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not CheckBox checkBox) return;
+        bool isChecked = checkBox.IsChecked == true;
+
+        if (_audioEngine.Dsp != null)
+        {
+            switch (checkBox.Tag as string)
+            {
+                case "Bass":
+                    _audioEngine.Dsp.IsBassBoostEnabled = isChecked;
+                    break;
+                case "Treble":
+                    _audioEngine.Dsp.IsTrebleBoostEnabled = isChecked;
+                    break;
+                case "SubBass":
+                    _audioEngine.Dsp.IsSubBassFilterEnabled = isChecked;
+                    break;
+            }
+        }
+
+        if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
+    }
+
+    // Застосовує збережені DSP-тоггли до чекбоксів та DSP (викликається зі LoadSavedSettingsAndPresets)
+    private void ApplyBoostTogglesToDsp(AppSettings settings)
+    {
+        BassBoostCheckBox.IsChecked = settings.IsBassBoostEnabled;
+        TrebleBoostCheckBox.IsChecked = settings.IsTrebleBoostEnabled;
+        SubBassFilterCheckBox.IsChecked = settings.IsSubBassFilterEnabled;
+
+        if (_audioEngine.Dsp != null)
+        {
+            _audioEngine.Dsp.IsBassBoostEnabled = settings.IsBassBoostEnabled;
+            _audioEngine.Dsp.IsTrebleBoostEnabled = settings.IsTrebleBoostEnabled;
+            _audioEngine.Dsp.IsSubBassFilterEnabled = settings.IsSubBassFilterEnabled;
+        }
+    }
+
     // Кнопка "Скинути": ResetEq у DSP + нулі в усі слайдери
     private void ResetEqButton_OnClick(object sender, RoutedEventArgs e)
     {
