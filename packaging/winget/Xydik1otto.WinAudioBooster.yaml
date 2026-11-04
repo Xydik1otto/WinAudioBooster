@@ -5,12 +5,12 @@
 # перед сабмітом розбийте його на частини згідно з README-uk.md або
 # скористайтеся `wingetcreate new --update` для автогенерації.
 #
-# ❗ InstallerSha256 — ЗАГЛУШКА. Заповнити SHA256 після релізу v1.1.0:
+# SHA256 розраховується автоматично CI (job «Update manifests hashes») після кожного релізу:
 #   certutil -hashfile WinAudioBooster.exe SHA256
 #   (або `sha256sum WinAudioBooster.exe` у git-bash)
 
 PackageIdentifier: Xydik1otto.WinAudioBooster
-PackageVersion: 1.1.0
+PackageVersion: 1.2.0
 PackageLocale: uk-UA
 Publisher: Xydik1otto
 PackageName: WinAudioBooster
@@ -34,8 +34,8 @@ Moniker: winaudiobooster
 Installers:
   - Architecture: x64
     InstallerType: portable
-    InstallerUrl: https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.1.0/WinAudioBooster.exe
-    InstallerSha256: 8a3df32dab5b3f7fbe8ff1a8793ba30ceb5e6d493bd87356ca802b8d9048d013 # розраховано з опублікованого v1.1.0 exe
+    InstallerUrl: https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.2.0/WinAudioBooster.exe
+    InstallerSha256: ac33a0d7683cb882d3d5e96c713d68eb10673e9010cf57a242e9242d5e1791f0 # розраховано з опублікованого v1.2.0 exe
     InstallerSwitches:
       Portable: ''
     PortableCommandAlias: winaudiobooster
