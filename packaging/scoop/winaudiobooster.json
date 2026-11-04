@@ -14,7 +14,7 @@
   "homepage": "https://github.com/Xydik1otto/WinAudioBooster",
   "license": "MIT",
   "url": "https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.1.0/WinAudioBooster.exe",
-  "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hash": "8a3df32dab5b3f7fbe8ff1a8793ba30ceb5e6d493bd87356ca802b8d9048d013",
   "notes": "Single-file portable build. VB-Audio CABLE driver is offered for installation on first launch.",
   "bin": [["WinAudioBooster.exe", "winaudiobooster"]],
   "shortcuts": [["WinAudioBooster.exe", "WinAudioBooster"]],

@@ -35,7 +35,7 @@ Installers:
   - Architecture: x64
     InstallerType: portable
     InstallerUrl: https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.1.0/WinAudioBooster.exe
-    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000 # ЗАГЛУШКА: заповнити SHA256 після релізу v1.1.0
+    InstallerSha256: 8a3df32dab5b3f7fbe8ff1a8793ba30ceb5e6d493bd87356ca802b8d9048d013 # розраховано з опублікованого v1.1.0 exe
     InstallerSwitches:
       Portable: ''
     PortableCommandAlias: winaudiobooster
