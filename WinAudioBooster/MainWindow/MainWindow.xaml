@@ -181,12 +181,19 @@
                                           VerticalAlignment="Center"
                                           Checked="EqToggle_OnChecked"
                                           Unchecked="EqToggle_OnChecked"/>
-                                <Button x:Name="ResetEqButton"
-                                        Content="{DynamicResource Eq_Reset}"
-                                        Click="ResetEqButton_OnClick"
-                                        Style="{StaticResource RazerButton}"
-                                        HorizontalAlignment="Right"
-                                        Padding="10,3"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="ImportAutoEqButton"
+                                            Content="{DynamicResource Eq_ImportAutoEq}"
+                                            Click="ImportAutoEqButton_OnClick"
+                                            Style="{StaticResource RazerButton}"
+                                            Padding="10,3"
+                                            Margin="0,0,6,0"/>
+                                    <Button x:Name="ResetEqButton"
+                                            Content="{DynamicResource Eq_Reset}"
+                                            Click="ResetEqButton_OnClick"
+                                            Style="{StaticResource RazerButton}"
+                                            Padding="10,3"/>
+                                </StackPanel>
                             </Grid>
 
                             <!-- Швидкі DSP-тоггли: Bass Boost / Treble Boost / Cut sub-bass (30 Гц) -->
@@ -340,7 +347,7 @@
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Vu_Output}" Foreground="{DynamicResource RazerTextMuted}" VerticalAlignment="Center" FontSize="11"/>
                         <ProgressBar Grid.Row="1" Grid.Column="1" x:Name="OutputVuBar" Height="8" Minimum="0" Maximum="1" Foreground="#00BCFF" Margin="0,3"/>
 
-                        <!-- Візуалізатор рівня-в-часі: 32 бари історії піків виходу (оновлюється у _vuTimer) -->
+                        <!-- Спектроаналізатор: 32 лог-смуги FFT (2048, вікно Ханна), оновлюється у _vuTimer -->
                         <Canvas Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
                                 x:Name="SpectrumCanvas" Height="60" Margin="0,10,0,2" ClipToBounds="True"/>
                     </Grid>

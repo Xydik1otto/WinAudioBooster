@@ -39,6 +39,12 @@
     <sys:String x:Key="Eq_Group">Еквалайзер</sys:String>
     <sys:String x:Key="Eq_Enable">Увімкнути еквалайзер</sys:String>
     <sys:String x:Key="Eq_Reset">Скинути</sys:String>
+    <sys:String x:Key="Eq_ImportAutoEq">Імпорт AutoEq</sys:String>
+
+    <!-- Імпорт AutoEq-кривих -->
+    <sys:String x:Key="AutoEq_OpenDialog_Title">Імпорт AutoEq-кривої</sys:String>
+    <sys:String x:Key="AutoEq_Error_Title">Помилка імпорту AutoEq</sys:String>
+    <sys:String x:Key="AutoEq_Error_Message">Не вдалося імпортувати AutoEq-криву.&#10;&#10;{0}</sys:String>
 
     <sys:String x:Key="VuMeters_Group">Рівні сигналу (VU)</sys:String>
     <sys:String x:Key="Vu_Input">Вхід:</sys:String>

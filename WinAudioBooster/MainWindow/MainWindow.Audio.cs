@@ -294,9 +294,9 @@ public partial class MainWindow
                 OutputVuBar.Value = 0;
             }
 
-            // Візуалізатор рівня-в-часі у тому ж кадрі (~30 fps):
-            // кожен тік — новий бар піку виходу, історія зсувається вправо
-            UpdatePeakHistory(_audioEngine.Dsp?.OutputMeter.CurrentLevel ?? 0, boosterEnabled);
+            // Спектроаналізатор у тому ж кадрі (~30 fps): FFT останніх семплів
+            // після лімітера → 32 лог-смуги; без даних бари плавно спадають
+            UpdateSpectrumFrame(boosterEnabled);
         };
         _vuTimer.Start();
     }

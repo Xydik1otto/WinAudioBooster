@@ -471,43 +471,80 @@ public class DspProcessor : ISampleProvider
 
     #endregion
 
-    #region Spectrum tap (для майбутнього візуалізатора)
+    #region Спектральний тап візуалізатора (після лімітера, 4096 семплів)
 
-    /// <summary>Розмір спектрального буфера в семплах (моно-мікс).</summary>
-    public const int SpectrumTapSize = 2048;
+    /// <summary>Розмір кільцевого буфера спектрального тапа візуалізатора (моно-семпли).</summary>
+    public const int SpectrumBufferSize = 4096;
 
-    private readonly float[] _spectrumTap = new float[SpectrumTapSize];
-    private int _spectrumTapPosition; // індекс наступного запису = найстаріший семпл
-    private readonly object _spectrumTapLock = new();
+    // Буфер перевиділяється лише при зміні формату (під lock); у Read() жодних алокацій.
+    private float[] _spectrumBuffer = new float[SpectrumBufferSize];
+    private int _spectrumWritePos;  // індекс наступного запису в кільцевий буфер
+    private int _spectrumFilled;    // скільки валідних семплів накопичено (<= SpectrumBufferSize)
+    private int _spectrumSampleRate = -1;
+    private int _spectrumChannels = -1;
+    private readonly object _spectrumBufferLock = new();
 
     /// <summary>
-    /// Копіює останні SpectrumTapSize семплів моно-міксу (від найстаріших до
-    /// найновіших) у destination. Потокобезпечний (під lock).
+    /// Увімкнення спектрального тапа. Коли вимкнено, Read() не підтримує
+    /// буфер (заощаджує CPU), а CopySpectrumSamples повертає 0.
     /// </summary>
-    public void CopySpectrumTap(float[] destination)
+    public bool IsSpectrumTapEnabled { get; set; } = true;
+
+    /// <summary>Перевиділяє буфер тапа при зміні формату (частота/канали) — старі семпли скидаються.</summary>
+    private void EnsureSpectrumBufferCurrent(int sampleRate, int channels)
+    {
+        if (_spectrumSampleRate == sampleRate && _spectrumChannels == channels) return;
+
+        _spectrumBuffer = new float[SpectrumBufferSize];
+        _spectrumWritePos = 0;
+        _spectrumFilled = 0;
+        _spectrumSampleRate = sampleRate;
+        _spectrumChannels = channels;
+    }
+
+    /// <summary>
+    /// Копіює останні семпли моно-міксу фінального (після лімітера) звуку у
+    /// destination у хронологічному порядку (найстаріші першими) — не більше
+    /// destination.Length. Повертає кількість скопійованих семплів (0, коли
+    /// тап вимкнено або ще нічого не накопичено). Потокобезпечно: короткий
+    /// lock навколо O(N)-копіювання, без алокацій — безпечно кликати з
+    /// UI-таймера (~33 мс).
+    /// </summary>
+    public int CopySpectrumSamples(float[] destination)
     {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
-        if (destination.Length != SpectrumTapSize)
-            throw new ArgumentException($"Очікується масив довжиною {SpectrumTapSize}.", nameof(destination));
 
-        lock (_spectrumTapLock)
+        lock (_spectrumBufferLock)
         {
-            for (int i = 0; i < SpectrumTapSize; i++)
+            if (!IsSpectrumTapEnabled) return 0;
+
+            int count = Math.Min(destination.Length, _spectrumFilled);
+            var src = _spectrumBuffer;
+            // Найстаріший валідний семпл лежить за (writePos - filled) модульно
+            for (int i = 0; i < count; i++)
             {
-                destination[i] = _spectrumTap[(_spectrumTapPosition + i) % SpectrumTapSize];
+                destination[i] = src[(_spectrumWritePos - _spectrumFilled + i + SpectrumBufferSize) % SpectrumBufferSize];
             }
+
+            return count;
         }
     }
 
-    /// <summary>Дописує моно-мікс оброблених фреймів у спектральний буфер.</summary>
-    private void FillSpectrumTap(float[] buffer, int offset, int sampleCount)
+    /// <summary>Дописує моно-мікс фінальних (оброблених) фреймів у кільцевий буфер тапа.</summary>
+    private void FillSpectrumBuffer(float[] buffer, int offset, int sampleCount)
     {
+        if (!IsSpectrumTapEnabled) return;
+
         int channels = Math.Max(1, WaveFormat.Channels);
         int frames = sampleCount / channels;
         if (frames <= 0) return;
 
-        lock (_spectrumTapLock)
+        lock (_spectrumBufferLock)
         {
+            EnsureSpectrumBufferCurrent(WaveFormat.SampleRate, channels);
+
+            var ring = _spectrumBuffer;
+            int pos = _spectrumWritePos;
             for (int frame = 0; frame < frames; frame++)
             {
                 int frameStart = offset + frame * channels;
@@ -516,9 +553,14 @@ public class DspProcessor : ISampleProvider
                 {
                     mono += buffer[frameStart + ch];
                 }
-                _spectrumTap[_spectrumTapPosition] = mono / channels;
-                _spectrumTapPosition = (_spectrumTapPosition + 1) % SpectrumTapSize;
+
+                ring[pos] = mono / channels;
+                pos++;
+                if (pos >= SpectrumBufferSize) pos = 0;
             }
+
+            _spectrumWritePos = pos;
+            _spectrumFilled = Math.Min(SpectrumBufferSize, _spectrumFilled + frames);
         }
     }
 
@@ -536,7 +578,7 @@ public class DspProcessor : ISampleProvider
             // Коли DSP вимкнено, гейн все одно "доганяє" ціль, щоб після
             // повторного увімкнення не було стрибка гучності.
             AdvanceGainSlew(samplesRead);
-            FillSpectrumTap(buffer, offset, samplesRead);
+            FillSpectrumBuffer(buffer, offset, samplesRead); // пас-тру: семпли все одно йдуть у тап
             OutputMeter.ProcessSamples(buffer, offset, samplesRead);
             return samplesRead;
         }
@@ -737,8 +779,8 @@ public class DspProcessor : ISampleProvider
         _appliedGainDb = appliedGainDb;
         _appliedGainLinear = gain;
 
-        // Спектральний тап заповнюємо найостаннішим — після всієї обробки
-        FillSpectrumTap(buffer, offset, samplesRead);
+        // Спектральний тап заповнюємо найостаннішим — після всієї обробки (включно з лімітером)
+        FillSpectrumBuffer(buffer, offset, samplesRead);
 
         OutputMeter.ProcessSamples(buffer, offset, samplesRead);
         return samplesRead;

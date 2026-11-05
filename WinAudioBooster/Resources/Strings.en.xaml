@@ -39,6 +39,12 @@
     <sys:String x:Key="Eq_Group">Equalizer</sys:String>
     <sys:String x:Key="Eq_Enable">Enable equalizer</sys:String>
     <sys:String x:Key="Eq_Reset">Reset</sys:String>
+    <sys:String x:Key="Eq_ImportAutoEq">Import AutoEq</sys:String>
+
+    <!-- AutoEq curve import -->
+    <sys:String x:Key="AutoEq_OpenDialog_Title">Import AutoEq Curve</sys:String>
+    <sys:String x:Key="AutoEq_Error_Title">AutoEq Import Error</sys:String>
+    <sys:String x:Key="AutoEq_Error_Message">Failed to import the AutoEq curve.&#10;&#10;{0}</sys:String>
 
     <sys:String x:Key="VuMeters_Group">Signal Levels (VU)</sys:String>
     <sys:String x:Key="Vu_Input">Input:</sys:String>

@@ -494,32 +494,82 @@ public class DspProcessorTests
     }
 
     [Fact]
-    public void CopySpectrumTap_WrongSize_ThrowsArgumentException()
-    {
-        var dsp = CreateDsp(Sine(1000.0));
-        Assert.Throws<ArgumentException>(() => dsp.CopySpectrumTap(new float[DspProcessor.SpectrumTapSize - 1]));
-        Assert.Throws<ArgumentException>(() => dsp.CopySpectrumTap(new float[DspProcessor.SpectrumTapSize + 1]));
-    }
-
-    [Fact]
-    public void CopySpectrumTap_FilledWithNonZeros_AfterRead()
+    public void CopySpectrumSamples_AfterSineRead_ReturnsSamples()
     {
         var dsp = CreateDsp(Sine(1000.0, 0.5f));
 
-        // Читаємо вдвічі більше за розмір тапа — буфер гарантовано заповнений
-        ReadAll(dsp, DspProcessor.SpectrumTapSize * 4);
+        // Читаємо вдвічі більше за розмір буфера — він гарантовано заповнений
+        ReadAll(dsp, DspProcessor.SpectrumBufferSize * 2);
 
-        var tap = new float[DspProcessor.SpectrumTapSize];
-        dsp.CopySpectrumTap(tap);
+        var destination = new float[DspProcessor.SpectrumBufferSize];
+        int copied = dsp.CopySpectrumSamples(destination);
 
-        int nonZero = 0;
+        Assert.True(copied > 0, "Після Read з синусом тап має повернути >0 семплів");
+        Assert.Equal(DspProcessor.SpectrumBufferSize, copied);
+    }
+
+    [Fact]
+    public void CopySpectrumSamples_NeverExceedsDestinationLength()
+    {
+        var dsp = CreateDsp(Sine(1000.0, 0.5f));
+        ReadAll(dsp, DspProcessor.SpectrumBufferSize * 2);
+
+        // Менший буфер: має повернутися рівно destination.Length
+        var small = new float[1000];
+        Assert.Equal(1000, dsp.CopySpectrumSamples(small));
+
+        // Частково заповнений тап після короткого читання: стільки ж, скільки фреймів прочитано
+        var fresh = CreateDsp(Sine(1000.0, 0.5f));
+        ReadAll(fresh, 300);
+        Assert.Equal(150, fresh.CopySpectrumSamples(new float[4096])); // 300 семплів / 2 канали
+    }
+
+    [Fact]
+    public void CopySpectrumSamples_Disabled_ReturnsZero()
+    {
+        var dsp = CreateDsp(Sine(1000.0, 0.5f));
+        Assert.True(dsp.IsSpectrumTapEnabled, "Тап має бути увімкнений за замовчуванням");
+
+        dsp.IsSpectrumTapEnabled = false;
+        ReadAll(dsp, DspProcessor.SpectrumBufferSize * 2);
+
+        Assert.Equal(0, dsp.CopySpectrumSamples(new float[4096]));
+    }
+
+    [Fact]
+    public void CopySpectrumSamples_DspDisabled_PassThroughStillFills()
+    {
+        var dsp = CreateDsp(pos => 0.25f);
+        dsp.IsEnabled = false;
+
+        ReadAll(dsp, 2048);
+
+        var tap = new float[512];
+        int copied = dsp.CopySpectrumSamples(tap);
+        Assert.True(copied > 0, "При вимкненому DSP семпли все одно мають потрапляти у буфер (пас-тру)");
+        Assert.Equal(0.25f, tap[^1], 4); // останній семпл = фінальний (необроблений) сигнал
+    }
+
+    [Fact]
+    public void CopySpectrumSamples_ContainsMonoMixOfFinalAudio()
+    {
+        // L = 0.2, R = 0.4 -> моно-мікс = 0.3; без компресора/лімітера значення не змінюються
+        var dsp = CreateDsp(pos => (pos % 2 == 0) ? 0.2f : 0.4f);
+        ReadAll(dsp, 2048);
+
+        var tap = new float[256];
+        Assert.Equal(256, dsp.CopySpectrumSamples(tap));
         foreach (float s in tap)
         {
-            if (s != 0f) nonZero++;
+            Assert.Equal(0.3f, s, 4);
         }
+    }
 
-        Assert.True(nonZero > DspProcessor.SpectrumTapSize / 2,
-            $"Тап має бути заповнений ненульовими семплами: nonZero={nonZero}");
+    [Fact]
+    public void CopySpectrumSamples_NullDestination_Throws()
+    {
+        var dsp = CreateDsp(Sine(1000.0, 0.5f));
+        Assert.Throws<ArgumentNullException>(() => dsp.CopySpectrumSamples(null!));
     }
 
     [Fact]

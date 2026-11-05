@@ -4,15 +4,18 @@ public partial class MiniMixerWindow : Window
 {
     private readonly MainWindow _mainWindow;
     private readonly DispatcherTimer _vuTimer = new();
-    private readonly OutputPeakHistoryVisualizer _spectrumVisualizer;
+    private readonly FftSpectrumAnalyzer _spectrumVisualizer;
+
+    // Буфер семплів спектрального тапа для міні-мікшера (розмір за контрактом DspProcessor)
+    private readonly float[] _spectrumSamples = new float[DspProcessor.SpectrumBufferSize];
 
     public MiniMixerWindow(MainWindow mainWindow)
     {
         InitializeComponent();
         _mainWindow = mainWindow;
 
-        // Візуалізатор історії піків виходу (32 бари, оновлюється у _vuTimer)
-        _spectrumVisualizer = new OutputPeakHistoryVisualizer(MiniSpectrumCanvas);
+        // Спектроаналізатор виходу (32 бари FFT-спектру, оновлюється у _vuTimer)
+        _spectrumVisualizer = new FftSpectrumAnalyzer(MiniSpectrumCanvas);
 
         var desktopWorkingArea = SystemParameters.WorkArea;
         Left = desktopWorkingArea.Right - Width - 10;
@@ -46,8 +49,17 @@ public partial class MiniMixerWindow : Window
                 MiniVuBar.Value = 0;
             }
 
-            // Історія піків у тому ж кадрі; при вимкненому DSP пишуться нулі
-            _spectrumVisualizer.Push(_mainWindow.AudioEngineInstance.Dsp?.OutputMeter.CurrentLevel ?? 0, boosterEnabled);
+            // FFT-спектр у тому ж кадрі; без даних/вимкненого DSP бари спадають
+            var dsp = _mainWindow.AudioEngineInstance.Dsp;
+            if (dsp != null && boosterEnabled)
+            {
+                int copied = dsp.CopySpectrumSamples(_spectrumSamples);
+                _spectrumVisualizer.Update(copied, _spectrumSamples, dsp.WaveFormat.SampleRate, isActive: true);
+            }
+            else
+            {
+                _spectrumVisualizer.Update(0, null, 0, isActive: false);
+            }
         };
         _vuTimer.Start();
     }

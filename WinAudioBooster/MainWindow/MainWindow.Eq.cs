@@ -5,6 +5,9 @@ public partial class MainWindow
     // Кількість смуг еквалайзера (31, 62, 125, 250, 500, 1k, 2k, 4k, 8k, 16k Гц)
     private const int EqBandCount = 10;
 
+    // Частоти смуг EQ (Гц) — цілі інтерполяції AutoEq-кривих
+    private static readonly float[] EqBandFrequencies = { 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
+
     // Повертає слайдер відповідної смуги еквалайзера
     private Slider? EqSliderAt(int band) => band switch
     {
@@ -168,6 +171,76 @@ public partial class MainWindow
             _audioEngine.Dsp.IsMonoEnabled = settings.IsMonoEnabled;
             _audioEngine.Dsp.Balance = (float)settings.Balance;
         }
+    }
+
+    // Кнопка «Імпорт AutoEq»: читає CSV-криву, інтерполює на 10 смуг і застосовує
+    private void ImportAutoEqButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = TryFindResource("AutoEq_OpenDialog_Title") as string ?? "Імпорт AutoEq-кривої",
+            Filter = "AutoEq (*.csv;*.txt)|*.csv;*.txt|All files (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        string content;
+        try
+        {
+            content = File.ReadAllText(dialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            ShowAutoEqError(ex.Message);
+            return;
+        }
+
+        try
+        {
+            double[] gains = AutoEqImporter.ParseAndInterpolate(content, EqBandFrequencies);
+
+            // Застосування через звичайний патерн гейтингу пресетів:
+            // слайдери самі синхронізують DSP через ValueChanged, збереження — після
+            _isApplyingPreset = true;
+            try
+            {
+                for (int i = 0; i < EqBandCount; i++)
+                {
+                    double clamped = Math.Clamp(gains[i], -12.0, 12.0);
+
+                    if (EqSliderAt(i) is { } slider) slider.Value = clamped;
+
+                    // Пряме застосування в DSP (дулює з ValueChanged, але надійно)
+                    if (_audioEngine.Dsp != null) _audioEngine.Dsp.SetEqBandGain(i, (float)clamped);
+                }
+
+                UpdateEqTexts();
+            }
+            finally
+            {
+                _isApplyingPreset = false;
+            }
+
+            SaveCurrentSettings();
+        }
+        catch (FormatException ex)
+        {
+            ShowAutoEqError(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            ShowAutoEqError(ex.Message);
+        }
+    }
+
+    // MessageBox з описом помилки парсингу/застосування AutoEq-кривої
+    private void ShowAutoEqError(string details)
+    {
+        string title = TryFindResource("AutoEq_Error_Title") as string ?? "Помилка імпорту AutoEq";
+        string template = TryFindResource("AutoEq_Error_Message") as string ??
+            "Не вдалося імпортувати AutoEq-криву.\n\n{0}";
+
+        MessageBox.Show(string.Format(template, details), title, MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     // Кнопка "Скинути": ResetEq у DSP + нулі в усі слайдери
