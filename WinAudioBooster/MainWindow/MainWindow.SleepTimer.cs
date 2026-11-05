@@ -48,6 +48,9 @@ public partial class MainWindow
 
         int minutes = ParseSleepTimerMinutes();
 
+        // Синхронізуємо хвилини таймера у ViewModel (джерело правди для стану)
+        _vm.SleepTimerMinutes = minutes;
+
         // Якщо fade-out уже ішов — скасовуємо і повертаємо гучність
         CancelSleepFade(restoreVolume: true);
         _sleepTimer.Stop();
@@ -75,7 +78,7 @@ public partial class MainWindow
         if (_isSleepFadeActive) return;
 
         _isSleepFadeActive = true;
-        _sleepPreFadeVolume = GainSlider.Value;
+        _sleepPreFadeVolume = _vm.GainPercent;
         _sleepFadeStepsLeft = SleepFadeTotalSteps;
 
         // _isApplyingPreset = true: fade не має тригерити збереження налаштувань
@@ -90,15 +93,15 @@ public partial class MainWindow
 
         if (_sleepFadeStepsLeft <= 0)
         {
-            GainSlider.Value = 0;
+            _vm.GainPercent = 0;
             _sleepFadeTimer.Stop();
             FinishSleepFade();
             return;
         }
 
-        // Плавне зниження гейна через слайдер — далі спрацьовує існуючий
-        // механізм GainSlider_OnValueChanged → VolumeManager → Dsp.GainDb
-        GainSlider.Value = _sleepPreFadeVolume * _sleepFadeStepsLeft / SleepFadeTotalSteps;
+        // Плавне зниження гейна через ViewModel — далі спрацьовує існуючий
+        // механізм GainSlider_OnValueChanged (через бідинг) → VolumeManager → Dsp.GainDb
+        _vm.GainPercent = _sleepPreFadeVolume * _sleepFadeStepsLeft / SleepFadeTotalSteps;
     }
 
     // Fade-out завершено: вимкнути бустер (той самий шлях, що чекбокс бустера) і повернути гучність
@@ -107,12 +110,13 @@ public partial class MainWindow
         _isSleepFadeActive = false;
         _isApplyingPreset = false;
 
-        EnableBoosterCheckBox.IsChecked = false;
+        // Стан бустера — у ViewModel; бідинг сам оновить чекбокс
+        _vm.IsBoosterEnabled = false;
         RestartAudioEngineIfEnabled();
 
         // Повертаємо гучність, яку мав користувач до fade-out
         _isApplyingPreset = true;
-        GainSlider.Value = _sleepPreFadeVolume;
+        _vm.GainPercent = _sleepPreFadeVolume;
         _isApplyingPreset = false;
 
         SaveCurrentSettings();
@@ -120,6 +124,7 @@ public partial class MainWindow
         // Скидаємо вибір таймера на "Вимк" (без перезапуску відліку)
         _isSleepTimerUpdating = true;
         SleepTimerComboBox.SelectedIndex = 0;
+        _vm.SleepTimerMinutes = 0;
         _isSleepTimerUpdating = false;
     }
 

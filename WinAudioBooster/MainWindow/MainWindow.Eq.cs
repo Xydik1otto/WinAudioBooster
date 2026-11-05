@@ -58,10 +58,10 @@ public partial class MainWindow
         if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
     }
 
-    // Увімкнення/вимкнення еквалайзера (checkbox у секції EQ)
+    // Увімкнення/вимкнення еквалайзера (checkbox прив'язаний до ViewModel)
     private void EqToggle_OnChecked(object sender, RoutedEventArgs e)
     {
-        bool isEnabled = EqEnabledCheckBox.IsChecked == true;
+        bool isEnabled = _vm.IsEqEnabled;
         if (_audioEngine.Dsp != null) _audioEngine.Dsp.IsEqEnabled = isEnabled;
 
         _miniMixerWindow?.SyncWithMainWindow();
@@ -69,24 +69,23 @@ public partial class MainWindow
         if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
     }
 
-    // Один обробник для трьох швидких DSP-тогглів (Tag = Bass | Treble | SubBass)
+    // Один обробник для трьох швидких DSP-тогглів (Tag = Bass | Treble | SubBass); стан — у ViewModel
     private void DspBoostToggle_OnChecked(object sender, RoutedEventArgs e)
     {
         if (sender is not CheckBox checkBox) return;
-        bool isChecked = checkBox.IsChecked == true;
 
         if (_audioEngine.Dsp != null)
         {
             switch (checkBox.Tag as string)
             {
                 case "Bass":
-                    _audioEngine.Dsp.IsBassBoostEnabled = isChecked;
+                    _audioEngine.Dsp.IsBassBoostEnabled = _vm.IsBassBoostEnabled;
                     break;
                 case "Treble":
-                    _audioEngine.Dsp.IsTrebleBoostEnabled = isChecked;
+                    _audioEngine.Dsp.IsTrebleBoostEnabled = _vm.IsTrebleBoostEnabled;
                     break;
                 case "SubBass":
-                    _audioEngine.Dsp.IsSubBassFilterEnabled = isChecked;
+                    _audioEngine.Dsp.IsSubBassFilterEnabled = _vm.IsSubBassFilterEnabled;
                     break;
             }
         }
@@ -94,27 +93,26 @@ public partial class MainWindow
         if (!_isInitializing && !_isApplyingPreset) SaveCurrentSettings();
     }
 
-    // Другий рядок швидких DSP-тогглів: Loudness / Stereo width / Crossfeed / Mono (за Tag)
+    // Другий рядок швидких DSP-тогглів: Loudness / Stereo width / Crossfeed / Mono (за Tag); стан — у ViewModel
     private void DspSpatialToggle_OnChecked(object sender, RoutedEventArgs e)
     {
         if (sender is not CheckBox checkBox) return;
-        bool isChecked = checkBox.IsChecked == true;
 
         if (_audioEngine.Dsp != null)
         {
             switch (checkBox.Tag as string)
             {
                 case "Loudness":
-                    _audioEngine.Dsp.IsLoudnessNormalizationEnabled = isChecked;
+                    _audioEngine.Dsp.IsLoudnessNormalizationEnabled = _vm.IsLoudnessNormalizationEnabled;
                     break;
                 case "StereoWidth":
-                    _audioEngine.Dsp.IsStereoWidenEnabled = isChecked;
+                    _audioEngine.Dsp.IsStereoWidenEnabled = _vm.IsStereoWidenEnabled;
                     break;
                 case "Crossfeed":
-                    _audioEngine.Dsp.IsCrossfeedEnabled = isChecked;
+                    _audioEngine.Dsp.IsCrossfeedEnabled = _vm.IsCrossfeedEnabled;
                     break;
                 case "Mono":
-                    _audioEngine.Dsp.IsMonoEnabled = isChecked;
+                    _audioEngine.Dsp.IsMonoEnabled = _vm.IsMonoEnabled;
                     break;
             }
         }
@@ -139,13 +137,9 @@ public partial class MainWindow
             : $"{(value < 0 ? "L" : "R")} {Math.Abs(value) * 100:F0}%";
     }
 
-    // Застосовує збережені DSP-тоггли до чекбоксів та DSP (викликається зі LoadSavedSettingsAndPresets)
+    // Застосовує збережені DSP-тоггли до DSP (чекбокси вже оновлені бідингом із ViewModel)
     private void ApplyBoostTogglesToDsp(AppSettings settings)
     {
-        BassBoostCheckBox.IsChecked = settings.IsBassBoostEnabled;
-        TrebleBoostCheckBox.IsChecked = settings.IsTrebleBoostEnabled;
-        SubBassFilterCheckBox.IsChecked = settings.IsSubBassFilterEnabled;
-
         if (_audioEngine.Dsp != null)
         {
             _audioEngine.Dsp.IsBassBoostEnabled = settings.IsBassBoostEnabled;
@@ -154,15 +148,9 @@ public partial class MainWindow
         }
     }
 
-    // Застосовує просторові DSP-тоггли та Balance (викликається зі LoadSavedSettingsAndPresets)
+    // Застосовує просторові DSP-тоггли та Balance до DSP (контроли вже оновлені бідингом)
     private void ApplySpatialTogglesToDsp(AppSettings settings)
     {
-        LoudnessCheckBox.IsChecked = settings.IsLoudnessNormalizationEnabled;
-        StereoWidthCheckBox.IsChecked = settings.IsStereoWidenEnabled;
-        CrossfeedCheckBox.IsChecked = settings.IsCrossfeedEnabled;
-        MonoCheckBox.IsChecked = settings.IsMonoEnabled;
-        BalanceSlider.Value = settings.Balance;
-
         if (_audioEngine.Dsp != null)
         {
             _audioEngine.Dsp.IsLoudnessNormalizationEnabled = settings.IsLoudnessNormalizationEnabled;
@@ -200,7 +188,7 @@ public partial class MainWindow
             double[] gains = AutoEqImporter.ParseAndInterpolate(content, EqBandFrequencies);
 
             // Застосування через звичайний патерн гейтингу пресетів:
-            // слайдери самі синхронізують DSP через ValueChanged, збереження — після
+            // пишемо в ViewModel — бідинг оновить слайдери, а ValueChanged синхронізує DSP
             _isApplyingPreset = true;
             try
             {
@@ -208,7 +196,7 @@ public partial class MainWindow
                 {
                     double clamped = Math.Clamp(gains[i], -12.0, 12.0);
 
-                    if (EqSliderAt(i) is { } slider) slider.Value = clamped;
+                    _vm.Eq.Bands[i].GainDb = clamped;
 
                     // Пряме застосування в DSP (дулює з ValueChanged, але надійно)
                     if (_audioEngine.Dsp != null) _audioEngine.Dsp.SetEqBandGain(i, (float)clamped);
@@ -243,7 +231,7 @@ public partial class MainWindow
         MessageBox.Show(string.Format(template, details), title, MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
-    // Кнопка "Скинути": ResetEq у DSP + нулі в усі слайдери
+    // Кнопка "Скинути": ResetEq у DSP + нулі в усі смуги EQ (ViewModel; слайдери оновить бідинг)
     private void ResetEqButton_OnClick(object sender, RoutedEventArgs e)
     {
         _isApplyingPreset = true;
@@ -253,7 +241,7 @@ public partial class MainWindow
 
             for (int i = 0; i < EqBandCount; i++)
             {
-                if (EqSliderAt(i) is { } slider) slider.Value = 0;
+                _vm.Eq.Bands[i].GainDb = 0;
             }
         }
         finally
@@ -264,44 +252,36 @@ public partial class MainWindow
         SaveCurrentSettings();
     }
 
-    // Застосовує збережені налаштування EQ до слайдерів та DSP (викликається зі LoadSavedSettingsAndPresets)
+    // Застосовує збережені налаштування EQ до DSP (слайдери вже синхронізовані бідингом із ViewModel)
     private void ApplyEqToDspAndSettings(AppSettings settings)
     {
-        EqEnabledCheckBox.IsChecked = settings.IsEqEnabled;
-
-        if (_audioEngine.Dsp != null) _audioEngine.Dsp.IsEqEnabled = settings.IsEqEnabled;
-
-        if (settings.EqGainsDb is { Length: EqBandCount } gains)
+        if (_audioEngine.Dsp != null)
         {
-            for (int i = 0; i < EqBandCount; i++)
+            _audioEngine.Dsp.IsEqEnabled = settings.IsEqEnabled;
+
+            if (settings.EqGainsDb is { Length: EqBandCount } gains)
             {
-                if (EqSliderAt(i) is { } slider) slider.Value = gains[i];
+                for (int i = 0; i < EqBandCount; i++)
+                {
+                    _audioEngine.Dsp.SetEqBandGain(i, (float)gains[i]);
+                }
             }
         }
 
         UpdateEqTexts();
     }
 
-    // Читає значення всіх смуг зі слайдерів (для збереження в налаштування/пресет)
+    // Читає значення всіх смуг з ViewModel (для збереження в налаштування/пресет)
     internal double[] GetEqGainsFromSliders()
     {
-        var gains = new double[EqBandCount];
-        for (int i = 0; i < EqBandCount; i++)
-        {
-            gains[i] = EqSliderAt(i)?.Value ?? 0;
-        }
-        return gains;
+        return _vm.Eq.GetGains();
     }
 
-    // Застосовує значення смуг з пресета: слайдери самі синхронізують DSP через ValueChanged
+    // Застосовує значення смуг з пресета: пишемо в ViewModel — бідинг оновить слайдери,
+    // а ValueChanged синхронізує DSP (як і раніше)
     internal void ApplyEqGainsToSliders(double[]? gains)
     {
-        if (gains == null || gains.Length != EqBandCount) return;
-
-        for (int i = 0; i < EqBandCount; i++)
-        {
-            if (EqSliderAt(i) is { } slider) slider.Value = gains[i];
-        }
+        _vm.Eq.SetGains(gains);
     }
 
     // Оновлює всі дБ-підписи еквалайзера за поточними значеннями слайдерів
@@ -313,10 +293,10 @@ public partial class MainWindow
         }
     }
 
-    // Викликається з міні-мікшера: перемикання EQ синхронізовано з головним вікном
+    // Викликається з міні-мікшера: перемикання EQ синхронізовано з головним вікном (стан — у ViewModel)
     public void TriggerEqToggleFromMini()
     {
-        if (_audioEngine.Dsp != null) _audioEngine.Dsp.IsEqEnabled = EqEnabledCheckBox.IsChecked == true;
+        if (_audioEngine.Dsp != null) _audioEngine.Dsp.IsEqEnabled = _vm.IsEqEnabled;
         SaveCurrentSettings();
     }
 }

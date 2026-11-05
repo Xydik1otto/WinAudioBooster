@@ -1,0 +1,16 @@
+; WinAudioBooster APO configuration (example)
+; Copy to: %APPDATA%\WinAudioBooster\apo-config.ini
+; The APO polls this file's LastWriteTime on every processed chunk and
+; re-reads it whenever the timestamp changes - no restart needed.
+;
+; Parameter names and semantics mirror Models.AppSettings / DspProcessor.cs:
+;   GainDb            - target gain in dB (slew-limited to 60 dB/s)
+;   EqGainsDb         - 10 peaking-EQ band gains in dB, bands are
+;                       31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 Hz
+;                       (each clamped to -12..+12, Q = 1.2)
+;   LimiterCeilingDb  - soft limiter ceiling in dB (knee at 0.9 * ceiling)
+
+[WinAudioBooster]
+GainDb=0
+EqGainsDb=0,0,0,0,0,0,2,2,0,0
+LimiterCeilingDb=-0.3

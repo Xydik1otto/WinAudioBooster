@@ -1,10 +1,18 @@
-﻿namespace WinAudioBooster;
+﻿using WinAudioBooster.Services.ViewModels;
+
+namespace WinAudioBooster;
 
 public partial class MainWindow : Window
 {
     private bool _isInitializing = true;
     private bool _isApplyingPreset = false;
     private bool _isListeningForHotkey = false;
+
+    // ViewModel — джерело правди для бідингу контролів і збереження стану (Snapshot/Apply)
+    private readonly MainViewModel _vm = new();
+
+    // Доступ для MiniMixerWindow та інших часткових класів MainWindow
+    internal MainViewModel Vm => _vm;
 
     private readonly AudioDeviceMonitor _deviceMonitor = new();
     private readonly AudioEngine _audioEngine = new();
@@ -51,6 +59,9 @@ public partial class MainWindow : Window
         ApplySavedThemeBeforeXamlLoad();
 
         InitializeComponent();
+
+        // ViewModel — DataContext для бідингу контролів (слайдери/чекбокси/комбобокси мови)
+        DataContext = _vm;
 
         InitializeTrayAndHotkeys();
         LoadPhysicalOutputDevices();

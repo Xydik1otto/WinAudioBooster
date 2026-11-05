@@ -39,7 +39,6 @@ public partial class MainWindow
                 {
                     _isApplyingPreset = true;
                     GainSlider.Value = winPercent;
-                    GainValueText.Text = $"{winPercent:F0}%";
                     _isApplyingPreset = false;
                     _miniMixerWindow?.SyncWithMainWindow();
                 }
@@ -139,7 +138,7 @@ public partial class MainWindow
 
     private async Task AutoSetupAudioPipelineAsync()
     {
-        if (EnableBoosterCheckBox.IsChecked == true)
+        if (_vm.IsBoosterEnabled)
         {
             var captureCableDevice = _deviceManager.FindCableDevice();
             var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
@@ -171,7 +170,7 @@ public partial class MainWindow
 
         bool ok = await AudioDeviceSwitcher.SetDefaultDeviceAsync(cable.ID);
 
-        EnableBoosterCheckBox.IsChecked = true;
+        _vm.IsBoosterEnabled = true;
         RestartAudioEngineIfEnabled();
 
         if (ok) MessageBox.Show("Звук Windows успішно переключено на VB-Cable!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -187,7 +186,7 @@ public partial class MainWindow
         // Встановлюємо динаміки за замовчуванням
         bool ok = await AudioDeviceSwitcher.SetDefaultDeviceAsync(targetDevice.Id);
 
-        EnableBoosterCheckBox.IsChecked = false;
+        _vm.IsBoosterEnabled = false;
         RestartAudioEngineIfEnabled();
 
         if (ok)
@@ -201,7 +200,7 @@ public partial class MainWindow
     {
         _audioEngine.Stop();
 
-        if (EnableBoosterCheckBox.IsChecked == true)
+        if (_vm.IsBoosterEnabled)
         {
             await AutoSetupAudioPipelineAsync();
         }
@@ -242,7 +241,7 @@ public partial class MainWindow
 
     private void UpdateBoosterStateUI()
     {
-        bool isEnabled = EnableBoosterCheckBox.IsChecked == true;
+        bool isEnabled = _vm.IsBoosterEnabled;
         if (_audioEngine.Dsp != null) _audioEngine.Dsp.IsEnabled = isEnabled;
 
         DspSettingsPanel.IsEnabled = isEnabled;
@@ -281,7 +280,7 @@ public partial class MainWindow
         _vuTimer.Interval = TimeSpan.FromMilliseconds(33);
         _vuTimer.Tick += (s, e) =>
         {
-            bool boosterEnabled = EnableBoosterCheckBox.IsChecked == true;
+            bool boosterEnabled = _vm.IsBoosterEnabled;
 
             if (_audioEngine.Dsp != null && boosterEnabled)
             {
@@ -306,14 +305,14 @@ public partial class MainWindow
         var captureCableDevice = _deviceManager.FindCableDevice();
         var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
 
-        MMDevice? deviceToControl = EnableBoosterCheckBox.IsChecked == true 
+        MMDevice? deviceToControl = _vm.IsBoosterEnabled
             ? captureCableDevice 
             : selectedOutputInfo?.Device;
 
         _volumeManager.BindDevice(deviceToControl);
 
         float calculatedGainDb = await _volumeManager.SetVolumeAndCalculateGainDbAsync(
-            GainSlider.Value, 
+            _vm.GainPercent, 
             deviceToControl, 
             selectedOutputInfo?.Device
         );
@@ -321,15 +320,15 @@ public partial class MainWindow
         if (_audioEngine.Dsp != null)
         {
             _audioEngine.Dsp.GainDb = calculatedGainDb;
-            _audioEngine.Dsp.CompressorThresholdDb = (float)CompThresholdSlider.Value;
-            _audioEngine.Dsp.CompressorRatio = (float)CompRatioSlider.Value;
-            _audioEngine.Dsp.LimiterCeilingDb = (float)LimiterCeilingSlider.Value;
+            _audioEngine.Dsp.CompressorThresholdDb = (float)_vm.CompressorThresholdDb;
+            _audioEngine.Dsp.CompressorRatio = (float)_vm.CompressorRatio;
+            _audioEngine.Dsp.LimiterCeilingDb = (float)_vm.LimiterCeilingDb;
         }
     }
 
     private void GainSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (GainValueText != null) GainValueText.Text = $"{e.NewValue:F0}%";
+        // GainValueText оновлюється бідингом до GainPercent
 
         MaybeShowHearingProtectionWarning(e.NewValue);
 
@@ -347,7 +346,7 @@ public partial class MainWindow
             var captureCableDevice = _deviceManager.FindCableDevice();
             var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
 
-            MMDevice? deviceToControl = EnableBoosterCheckBox.IsChecked == true 
+            MMDevice? deviceToControl = _vm.IsBoosterEnabled 
                 ? captureCableDevice 
                 : selectedOutputInfo?.Device;
 
@@ -377,7 +376,7 @@ public partial class MainWindow
         if (_hearingProtectionShown) return;
         if (newValue <= HearingProtectionLimitPercent) return;
         if (_isInitializing || _isApplyingPreset) return;
-        if (HearingProtectionCheckBox == null || HearingProtectionCheckBox.IsChecked != true) return;
+        if (!_vm.IsHearingProtectionEnabled) return;
 
         _hearingProtectionShown = true;
 
@@ -390,7 +389,7 @@ public partial class MainWindow
         if (result == MessageBoxResult.No)
         {
             // Зменшуємо до 150%: повторний виклик ValueChanged не покаже попередження (150 <= поріг)
-            GainSlider.Value = HearingProtectionLimitPercent;
+            _vm.GainPercent = HearingProtectionLimitPercent;
         }
     }
 

@@ -1,3 +1,5 @@
+using WinAudioBooster.Services.ViewModels;
+
 namespace WinAudioBooster;
 
 public partial class MainWindow
@@ -23,7 +25,8 @@ public partial class MainWindow
         _trayService = new TrayService(
             this, 
             () => { 
-                EnableBoosterCheckBox.IsChecked = !(EnableBoosterCheckBox.IsChecked == true);
+                // Стан бустера живе у ViewModel; бідинг сам оновить чекбокс
+                _vm.IsBoosterEnabled = !_vm.IsBoosterEnabled;
                 RestartAudioEngineIfEnabled();
                 SaveCurrentSettings();
             }, 
@@ -49,15 +52,15 @@ public partial class MainWindow
         _hotkeyManager.Register(this, mods, 0x44, HotkeyManager.BypassHotkeyId);
     }
 
-    // Той самий механізм, що й у Ctrl+Alt+B: toggle чекбокса бустера + перезапуск движка
+    // Той самий механізм, що й у Ctrl+Alt+B: toggle бустера через ViewModel + перезапуск движка
     private void ToggleBoosterViaHotkey()
     {
-        EnableBoosterCheckBox.IsChecked = !(EnableBoosterCheckBox.IsChecked == true);
+        _vm.IsBoosterEnabled = !_vm.IsBoosterEnabled;
         RestartAudioEngineIfEnabled();
         SaveCurrentSettings();
 
         // OSD-фідбек: бустер вимкнено хоткеєм → bypass активний (і навпаки)
-        ShowBypassOsd(EnableBoosterCheckBox.IsChecked == true);
+        ShowBypassOsd(_vm.IsBoosterEnabled);
     }
 
     // Маршрутизація глобальних хоткеїв за ідентифікатором
@@ -91,15 +94,14 @@ public partial class MainWindow
     {
         var settings = _settingsManager.LoadSettings();
 
+        // ViewModel — джерело правди для збереженого стану: Apply() виставляє всі
+        // [ObservableProperty], а бідинг сам оновлює слайдери/чекбокси/комбобокс мови
+        _vm.Apply(settings);
+
         SelectCurrentLanguageInComboBox(string.IsNullOrEmpty(settings.Language) ? null : settings.Language);
         RefreshPresetsList(settings.SelectedPresetName);
 
-        GainSlider.Value = settings.GainDb > 0 ? settings.GainDb : 100;
-        CompThresholdSlider.Value = settings.CompressorThresholdDb;
-        CompRatioSlider.Value = settings.CompressorRatio;
-        LimiterCeilingSlider.Value = settings.LimiterCeilingDb;
-
-        // Еквалайзер: слайдери, дБ-підписи та DSP
+        // Еквалайзер: слайдери вже синхронізовані бідингом — переносимо значення в DSP
         ApplyEqToDspAndSettings(settings);
 
         // Швидкі DSP-тоггли: Bass Boost / Treble Boost / Cut sub-bass
@@ -108,9 +110,8 @@ public partial class MainWindow
         // Просторові DSP-тоггли: Loudness / Stereo width / Crossfeed / Mono + Balance
         ApplySpatialTogglesToDsp(settings);
 
-        // Журнал подій: чекбокс у налаштуваннях керує статичним LoggingService
+        // Журнал подій: чекбокс прив'язаний до ViewModel, статичний LoggingService синхронізуємо тут
         LoggingService.IsEnabled = settings.IsLoggingEnabled;
-        LoggingEnabledCheckBox.IsChecked = settings.IsLoggingEnabled;
 
         if (OutputDeviceComboBox.ItemsSource is List<AudioDeviceInfo> physicalDevices && physicalDevices.Count > 0)
         {
@@ -124,10 +125,13 @@ public partial class MainWindow
         if (!string.IsNullOrEmpty(settings.SelectedTheme))
         {
             SelectCurrentThemeInComboBox(settings.SelectedTheme);
+            // Тема не прив'язана бідингом (у ComboBox немає пункту «Razer Green») — синхронізуємо стан у VM
+            _vm.SelectedTheme = settings.SelectedTheme;
             ThemeManager.ApplyTheme(settings.SelectedTheme);
         }
         else
         {
+            _vm.SelectedTheme = "Razer Green";
             ThemeManager.ApplyTheme("Razer Green");
         }
 
@@ -141,9 +145,8 @@ public partial class MainWindow
             Loaded += (s, e) => _hotkeyManager.Register(this, HotkeyManager.ModControl | HotkeyManager.ModAlt, 0x42);
         }
 
-        EnableBoosterCheckBox.IsChecked = settings.IsBoosterEnabled;
-        HearingProtectionCheckBox.IsChecked = settings.IsHearingProtectionEnabled;
         SleepTimerComboBox.SelectedIndex = 0; // за замовчуванням "Вимк" (обробник пропускається під час ініціалізації)
+        _vm.SleepTimerMinutes = 0;
 
         // Нічний режим за розкладом: UI + хвилинний таймер + перша перевірка
         InitializeQuietHours(settings);
@@ -155,43 +158,25 @@ public partial class MainWindow
     {
         var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
 
+        // ViewModel — джерело правди: основні налаштування беремо зі Snapshot()
+        var settings = _vm.Snapshot();
+
         // Списки, які керуються окремими редакторами (профілі пристроїв, правила гучності),
         // переносимо з поточного файлу налаштувань, щоб не втратити їх при збереженні
         var existing = _settingsManager.LoadSettings();
 
-        var settings = new AppSettings
-        {
-            IsBoosterEnabled = EnableBoosterCheckBox.IsChecked == true,
-            Language = (LanguageComboBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "uk-UA",
-            SelectedOutputDeviceId = selectedOutputInfo?.Id ?? string.Empty,
-            SelectedOutputDeviceName = selectedOutputInfo?.Name ?? string.Empty,
-            SelectedPresetName = (PresetsComboBox.SelectedItem as Preset)?.Name ?? "Light Boost",
-            GainDb = GainSlider.Value,
-            CompressorThresholdDb = CompThresholdSlider.Value,
-            CompressorRatio = CompRatioSlider.Value,
-            SelectedTheme = (ThemeComboBox.SelectedItem as ComboBoxItem)?.Tag as string
-                ?? (ThemeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Razer Green",
-            LimiterCeilingDb = LimiterCeilingSlider.Value,
-            IsEqEnabled = EqEnabledCheckBox.IsChecked == true,
-            EqGainsDb = GetEqGainsFromSliders(),
-            IsBassBoostEnabled = BassBoostCheckBox.IsChecked == true,
-            IsTrebleBoostEnabled = TrebleBoostCheckBox.IsChecked == true,
-            IsSubBassFilterEnabled = SubBassFilterCheckBox.IsChecked == true,
-            IsLoudnessNormalizationEnabled = LoudnessCheckBox.IsChecked == true,
-            IsStereoWidenEnabled = StereoWidthCheckBox.IsChecked == true,
-            IsCrossfeedEnabled = CrossfeedCheckBox.IsChecked == true,
-            IsMonoEnabled = MonoCheckBox.IsChecked == true,
-            Balance = BalanceSlider.Value,
-            IsLoggingEnabled = LoggingEnabledCheckBox.IsChecked == true,
-            DevicePresetBindings = existing.DevicePresetBindings,
-            AppVolumeRules = existing.AppVolumeRules,
-            IsHearingProtectionEnabled = HearingProtectionCheckBox.IsChecked == true,
+        // Мова: читаємо з ComboBox з fallback «uk-UA» — як і в оригіналі (виправляє невалідні збережені мови)
+        settings.Language = (LanguageComboBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "uk-UA";
 
-            // Нічний режим за розкладом
-            QuietHoursEnabled = QuietHoursCheckBox.IsChecked == true,
-            QuietHoursStart = Math.Max(0, QuietHoursStartComboBox.SelectedIndex),
-            QuietHoursEnd = Math.Max(0, QuietHoursEndComboBox.SelectedIndex)
-        };
+        settings.SelectedOutputDeviceId = selectedOutputInfo?.Id ?? string.Empty;
+        settings.SelectedOutputDeviceName = selectedOutputInfo?.Name ?? string.Empty;
+        settings.DevicePresetBindings = existing.DevicePresetBindings;
+        settings.AppVolumeRules = existing.AppVolumeRules;
+
+        // Нічний режим за розкладом (стан лишається в контролах, не в ViewModel)
+        settings.QuietHoursEnabled = QuietHoursCheckBox.IsChecked == true;
+        settings.QuietHoursStart = Math.Max(0, QuietHoursStartComboBox.SelectedIndex);
+        settings.QuietHoursEnd = Math.Max(0, QuietHoursEndComboBox.SelectedIndex);
 
         _settingsManager.SaveSettings(settings);
     }
@@ -200,44 +185,28 @@ public partial class MainWindow
     {
         var selectedOutputInfo = OutputDeviceComboBox.SelectedItem as AudioDeviceInfo;
 
+        // ViewModel — джерело правди: основні налаштування беремо зі Snapshot()
+        var settings = _vm.Snapshot();
+
         // Списки, які керуються окремими редакторами, переносимо з поточного файлу налаштувань
         var existing = _settingsManager.LoadSettings();
 
-        var settings = new AppSettings
-        {
-            IsBoosterEnabled = EnableBoosterCheckBox.IsChecked == true,
-            Language = (LanguageComboBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "uk-UA",
-            SelectedOutputDeviceId = selectedOutputInfo?.Id ?? string.Empty,
-            SelectedOutputDeviceName = selectedOutputInfo?.Name ?? string.Empty,
-            SelectedPresetName = (PresetsComboBox.SelectedItem as Preset)?.Name ?? "Light Boost",
-            GainDb = GainSlider.Value,
-            CompressorThresholdDb = CompThresholdSlider.Value,
-            CompressorRatio = CompRatioSlider.Value,
-            LimiterCeilingDb = LimiterCeilingSlider.Value,
-            IsEqEnabled = EqEnabledCheckBox.IsChecked == true,
-            EqGainsDb = GetEqGainsFromSliders(),
-            IsBassBoostEnabled = BassBoostCheckBox.IsChecked == true,
-            IsTrebleBoostEnabled = TrebleBoostCheckBox.IsChecked == true,
-            IsSubBassFilterEnabled = SubBassFilterCheckBox.IsChecked == true,
-            IsLoudnessNormalizationEnabled = LoudnessCheckBox.IsChecked == true,
-            IsStereoWidenEnabled = StereoWidthCheckBox.IsChecked == true,
-            IsCrossfeedEnabled = CrossfeedCheckBox.IsChecked == true,
-            IsMonoEnabled = MonoCheckBox.IsChecked == true,
-            Balance = BalanceSlider.Value,
-            IsLoggingEnabled = LoggingEnabledCheckBox.IsChecked == true,
-            DevicePresetBindings = existing.DevicePresetBindings,
-            AppVolumeRules = existing.AppVolumeRules,
-            IsHearingProtectionEnabled = HearingProtectionCheckBox.IsChecked == true,
+        // Мова: читаємо з ComboBox з fallback «uk-UA» — як і в оригіналі (виправляє невалідні збережені мови)
+        settings.Language = (LanguageComboBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "uk-UA";
 
-            // Нічний режим за розкладом
-            QuietHoursEnabled = QuietHoursCheckBox.IsChecked == true,
-            QuietHoursStart = Math.Max(0, QuietHoursStartComboBox.SelectedIndex),
-            QuietHoursEnd = Math.Max(0, QuietHoursEndComboBox.SelectedIndex),
+        settings.SelectedOutputDeviceId = selectedOutputInfo?.Id ?? string.Empty;
+        settings.SelectedOutputDeviceName = selectedOutputInfo?.Name ?? string.Empty;
+        settings.DevicePresetBindings = existing.DevicePresetBindings;
+        settings.AppVolumeRules = existing.AppVolumeRules;
 
-            HotkeyModifiers = modifiers,
-            HotkeyVKey = vKey,
-            HotkeyDisplayName = displayName
-        };
+        // Нічний режим за розкладом (стан лишається в контролах, не в ViewModel)
+        settings.QuietHoursEnabled = QuietHoursCheckBox.IsChecked == true;
+        settings.QuietHoursStart = Math.Max(0, QuietHoursStartComboBox.SelectedIndex);
+        settings.QuietHoursEnd = Math.Max(0, QuietHoursEndComboBox.SelectedIndex);
+
+        settings.HotkeyModifiers = modifiers;
+        settings.HotkeyVKey = vKey;
+        settings.HotkeyDisplayName = displayName;
 
         _settingsManager.SaveSettings(settings);
     }
@@ -248,10 +217,10 @@ public partial class MainWindow
         _autoStartService.SetAutoStart(isChecked);
     }
 
-    // Увімкнення/вимкнення журналу подій (чекбокс у налаштуваннях)
+    // Увімкнення/вимкнення журналу подій (чекбокс прив'язаний до ViewModel)
     private void LoggingEnabledCheckBox_OnClick(object sender, RoutedEventArgs e)
     {
-        LoggingService.IsEnabled = LoggingEnabledCheckBox.IsChecked == true;
+        LoggingService.IsEnabled = _vm.IsLoggingEnabled;
         SaveCurrentSettings();
     }
 
@@ -358,6 +327,9 @@ public partial class MainWindow
             // Tag — стабільний ідентифікатор теми (незалежний від мови інтерфейсу)
             string themeName = selectedItem.Tag as string ?? selectedItem.Content?.ToString() ?? string.Empty;
 
+            // Синхронізуємо вибір теми у ViewModel (джерело правди для збереження)
+            _vm.SelectedTheme = themeName;
+
             if (themeName == ThemeManager.AutoThemeName)
             {
                 // Авто-режим: база — Windows 11 Fluent, світла тема Windows перекривається overlay
@@ -396,6 +368,9 @@ public partial class MainWindow
 
         if (LanguageComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Tag is string cultureCode)
         {
+            // Синхронізуємо мову у ViewModel (SelectedValue також прив'язаний бідингом)
+            _vm.SelectedLanguage = cultureCode;
+
             App.SetCulture(new CultureInfo(cultureCode));
             UpdateBoosterStateUI();
             UpdateInstallButtonState();
@@ -485,7 +460,7 @@ public partial class MainWindow
 
     private void UpdateAllUiTexts()
     {
-        GainValueText.Text = $"{GainSlider.Value:F0}%";
+        // GainValueText тепер прив'язаний бідингом до GainPercent — текст оновлюється автоматично
         CompThresholdText.Text = $"{CompThresholdSlider.Value:F0} dB";
         CompRatioText.Text = $"{CompRatioSlider.Value:F1}:1";
         LimiterCeilingText.Text = $"{LimiterCeilingSlider.Value:F1} dB";

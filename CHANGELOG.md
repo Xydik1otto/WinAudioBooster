@@ -5,7 +5,13 @@
 Формат базується на [Keep a Changelog](https://keepachangelog.com/uk/1.1.0/),
 версіонування — [Semantic Versioning](https://semver.org/lang/uk/).
 
-## [1.3.0] - Unreleased
+## [1.4.0] - Unreleased
+
+### Added
+- 🏗️ **MVVM-рефакторинг** — `CommunityToolkit.Mvvm`: `MainViewModel`/`EqViewModel` як джерело правди стану, ~20 контролів переведено на TwoWay-бідинг, збереження/відновлення через `Snapshot()/Apply()`; поведінка не змінена.
+- 🔮 **Стартовий пакет APO-інтеграції** (`native/WinAudioApo/`, `docs/apo/`, `packaging/apo/`) — шлях до повної ліквідації VB-Cable та нульової латентності: C++/COM каркас APO (gain → 10-band EQ → tanh-лімітер, конфіг з `%APPDATA%\WinAudioBooster\apo-config.ini`), план міграції та дистрибуції за патерном Equalizer APO; для збору потрібен WDK.
+
+## [1.3.0] - 2026-11-05
 
 ### Added
 - 📊 **Справжній FFT-спектроаналізатор** — 32 логарифмічні смуги (20 Гц…20 кГц), вікно Ханна, плавне згладжування; замінив історію піків у головному вікні та міні-мікшері (ідея з FxSound).

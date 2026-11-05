@@ -27,10 +27,11 @@ public partial class MiniMixerWindow : Window
 
     public void SyncWithMainWindow()
     {
-        MiniGainSlider.Value = _mainWindow.GainSlider.Value;
+        // Стан читаємо з ViewModel головного вікна (джерело правди), а не з контролів
+        MiniGainSlider.Value = _mainWindow.Vm.GainPercent;
         MiniGainText.Text = $"{MiniGainSlider.Value:F0}%";
-        MiniBoosterToggle.IsChecked = _mainWindow.EnableBoosterCheckBox.IsChecked;
-        MiniEqToggle.IsChecked = _mainWindow.EqEnabledCheckBox.IsChecked;
+        MiniBoosterToggle.IsChecked = _mainWindow.Vm.IsBoosterEnabled;
+        MiniEqToggle.IsChecked = _mainWindow.Vm.IsEqEnabled;
     }
 
     private void InitializeVuTimer()
@@ -73,21 +74,24 @@ public partial class MiniMixerWindow : Window
     private void MiniGainSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (MiniGainText != null) MiniGainText.Text = $"{e.NewValue:F0}%";
-        if (_mainWindow?.GainSlider != null)
+
+        // Пишемо у ViewModel головного вікна: бідинг оновить слайдер головного вікна,
+        // а його ValueChanged синхронізує DSP і зворотний SyncWithMainWindow
+        if (_mainWindow != null)
         {
-            _mainWindow.GainSlider.Value = e.NewValue;
+            _mainWindow.Vm.GainPercent = e.NewValue;
         }
     }
 
     private void MiniBoosterToggle_OnClick(object sender, RoutedEventArgs e)
     {
-        _mainWindow.EnableBoosterCheckBox.IsChecked = MiniBoosterToggle.IsChecked;
+        _mainWindow.Vm.IsBoosterEnabled = MiniBoosterToggle.IsChecked == true;
         _mainWindow.TriggerBoosterToggleFromMini();
     }
 
     private void MiniEqToggle_OnClick(object sender, RoutedEventArgs e)
     {
-        _mainWindow.EqEnabledCheckBox.IsChecked = MiniEqToggle.IsChecked;
+        _mainWindow.Vm.IsEqEnabled = MiniEqToggle.IsChecked == true;
         _mainWindow.TriggerEqToggleFromMini();
     }
 

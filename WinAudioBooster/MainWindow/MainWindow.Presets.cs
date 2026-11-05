@@ -19,6 +19,10 @@ public partial class MainWindow
         }
 
         UpdatePresetButtonsState();
+
+        // Синхронізуємо ім'я пресета у ViewModel (джерело правди для збереження)
+        _vm.SelectedPresetName = (PresetsComboBox.SelectedItem as Preset)?.Name ?? "Light Boost";
+
         _isApplyingPreset = false;
     }
 
@@ -39,12 +43,15 @@ public partial class MainWindow
         {
             // Вибір у ComboBox блокується прапорцем _isApplyingPreset, тому застосовуємо значення вручну
             PresetsComboBox.SelectedItem = preset;
-            GainSlider.Value = preset.GainDb > 0 ? preset.GainDb : 100;
-            CompThresholdSlider.Value = preset.CompressorThresholdDb;
-            CompRatioSlider.Value = preset.CompressorRatio;
-            LimiterCeilingSlider.Value = preset.LimiterCeilingDb;
+            _vm.SelectedPresetName = preset.Name;
 
-            // Еквалайзер: слайдери самі синхронізують DSP через EqSlider_OnValueChanged
+            // Слайдери оновляться бідингом; ValueChanged самі синхронізують DSP
+            _vm.GainPercent = preset.GainDb > 0 ? preset.GainDb : 100;
+            _vm.CompressorThresholdDb = preset.CompressorThresholdDb;
+            _vm.CompressorRatio = preset.CompressorRatio;
+            _vm.LimiterCeilingDb = preset.LimiterCeilingDb;
+
+            // Еквалайзер: пишемо в ViewModel — слайдери оновить бідинг
             ApplyEqGainsToSliders(preset.EqGainsDb);
         }
         finally
@@ -61,13 +68,15 @@ public partial class MainWindow
         if (_isApplyingPreset || PresetsComboBox.SelectedItem is not Preset selectedPreset) return;
 
         _isApplyingPreset = true;
+        _vm.SelectedPresetName = selectedPreset.Name;
 
-        GainSlider.Value = selectedPreset.GainDb > 0 ? selectedPreset.GainDb : 100;
-        CompThresholdSlider.Value = selectedPreset.CompressorThresholdDb;
-        CompRatioSlider.Value = selectedPreset.CompressorRatio;
-        LimiterCeilingSlider.Value = selectedPreset.LimiterCeilingDb;
+        // Слайдери оновляться бідингом; ValueChanged самі синхронізують DSP
+        _vm.GainPercent = selectedPreset.GainDb > 0 ? selectedPreset.GainDb : 100;
+        _vm.CompressorThresholdDb = selectedPreset.CompressorThresholdDb;
+        _vm.CompressorRatio = selectedPreset.CompressorRatio;
+        _vm.LimiterCeilingDb = selectedPreset.LimiterCeilingDb;
 
-        // Еквалайзер: слайдери самі синхронізують DSP через EqSlider_OnValueChanged
+        // Еквалайзер: пишемо в ViewModel — слайдери оновить бідинг
         ApplyEqGainsToSliders(selectedPreset.EqGainsDb);
 
         _ = SyncDspParametersAsync();
@@ -98,10 +107,10 @@ public partial class MainWindow
         var newPreset = new Preset
         {
             Name = presetName.Trim(),
-            GainDb = (float)GainSlider.Value,
-            CompressorThresholdDb = (float)CompThresholdSlider.Value,
-            CompressorRatio = (float)CompRatioSlider.Value,
-            LimiterCeilingDb = (float)LimiterCeilingSlider.Value,
+            GainDb = (float)_vm.GainPercent,
+            CompressorThresholdDb = (float)_vm.CompressorThresholdDb,
+            CompressorRatio = (float)_vm.CompressorRatio,
+            LimiterCeilingDb = (float)_vm.LimiterCeilingDb,
             EqGainsDb = GetEqGainsFromSliders()
         };
 
@@ -129,10 +138,10 @@ public partial class MainWindow
     {
         if (PresetsComboBox.SelectedItem is Preset current && !current.IsBuiltIn)
         {
-            current.GainDb = (float)GainSlider.Value;
-            current.CompressorThresholdDb = (float)CompThresholdSlider.Value;
-            current.CompressorRatio = (float)CompRatioSlider.Value;
-            current.LimiterCeilingDb = (float)LimiterCeilingSlider.Value;
+            current.GainDb = (float)_vm.GainPercent;
+            current.CompressorThresholdDb = (float)_vm.CompressorThresholdDb;
+            current.CompressorRatio = (float)_vm.CompressorRatio;
+            current.LimiterCeilingDb = (float)_vm.LimiterCeilingDb;
             current.EqGainsDb = GetEqGainsFromSliders();
 
             _presetManager.SaveCustomPreset(current);

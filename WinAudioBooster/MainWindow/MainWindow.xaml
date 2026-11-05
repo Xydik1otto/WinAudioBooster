@@ -70,8 +70,9 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <CheckBox Grid.Column="0" 
+                        <CheckBox Grid.Column="0"
                                   x:Name="EnableBoosterCheckBox"
+                                  IsChecked="{Binding IsBoosterEnabled, Mode=TwoWay}"
                                   Content="{DynamicResource EnableBooster_Label}"
                                   FontSize="15"
                                   FontWeight="Bold"
@@ -128,9 +129,9 @@
                         <StackPanel>
                             <Grid Margin="0,0,0,6">
                                 <TextBlock Text="Рівень підсилення" Foreground="{DynamicResource RazerTextMain}" FontSize="12" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="GainValueText" Text="100%" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToColorConverter}}"/>
+                                <TextBlock x:Name="GainValueText" Text="{Binding GainPercent, StringFormat={}{0:F0}%}" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToColorConverter}}"/>
                             </Grid>
-                            <Slider x:Name="GainSlider" Minimum="0" Maximum="300" Value="100" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="GainSlider_OnValueChanged"/>
+                            <Slider x:Name="GainSlider" Minimum="0" Maximum="300" Value="{Binding GainPercent, Mode=TwoWay}" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="GainSlider_OnValueChanged"/>
                         </StackPanel>
                     </GroupBox>
 
@@ -149,13 +150,13 @@
                                 <TextBlock Text="{DynamicResource Threshold_Label}" Foreground="{DynamicResource RazerTextMuted}" FontSize="11"/>
                                 <TextBlock x:Name="CompThresholdText" Foreground="{DynamicResource RazerTextMain}" HorizontalAlignment="Right" FontSize="11" FontWeight="Bold"/>
                             </Grid>
-                            <Slider x:Name="CompThresholdSlider" Minimum="-60" Maximum="0" Value="-20" ValueChanged="CompThresholdSlider_OnValueChanged" Margin="0,0,0,8"/>
+                            <Slider x:Name="CompThresholdSlider" Minimum="-60" Maximum="0" Value="{Binding CompressorThresholdDb, Mode=TwoWay}" ValueChanged="CompThresholdSlider_OnValueChanged" Margin="0,0,0,8"/>
 
                             <Grid Margin="0,0,0,4">
                                 <TextBlock Text="{DynamicResource Ratio_Label}" Foreground="{DynamicResource RazerTextMuted}" FontSize="11"/>
                                 <TextBlock x:Name="CompRatioText" Foreground="{DynamicResource RazerTextMain}" HorizontalAlignment="Right" FontSize="11" FontWeight="Bold"/>
                             </Grid>
-                            <Slider x:Name="CompRatioSlider" Minimum="1" Maximum="20" Value="3" ValueChanged="CompRatioSlider_OnValueChanged"/>
+                            <Slider x:Name="CompRatioSlider" Minimum="1" Maximum="20" Value="{Binding CompressorRatio, Mode=TwoWay}" ValueChanged="CompRatioSlider_OnValueChanged"/>
                         </StackPanel>
                     </GroupBox>
 
@@ -166,7 +167,7 @@
                                 <TextBlock Text="{DynamicResource Ceiling_Label}" Foreground="{DynamicResource RazerTextMuted}" FontSize="11"/>
                                 <TextBlock x:Name="LimiterCeilingText" Foreground="{DynamicResource RazerTextMain}" HorizontalAlignment="Right" FontSize="11" FontWeight="Bold"/>
                             </Grid>
-                            <Slider x:Name="LimiterCeilingSlider" Minimum="-3" Maximum="0" Value="-0.3" TickFrequency="0.1" ValueChanged="LimiterCeilingSlider_OnValueChanged"/>
+                            <Slider x:Name="LimiterCeilingSlider" Minimum="-3" Maximum="0" Value="{Binding LimiterCeilingDb, Mode=TwoWay}" TickFrequency="0.1" ValueChanged="LimiterCeilingSlider_OnValueChanged"/>
                         </StackPanel>
                     </GroupBox>
 
@@ -175,6 +176,7 @@
                         <StackPanel>
                             <Grid Margin="0,0,0,8">
                                 <CheckBox x:Name="EqEnabledCheckBox"
+                                          IsChecked="{Binding IsEqEnabled, Mode=TwoWay}"
                                           Content="{DynamicResource Eq_Enable}"
                                           FontSize="12"
                                           FontWeight="SemiBold"
@@ -204,18 +206,21 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <CheckBox Grid.Column="0" x:Name="BassBoostCheckBox"
+                                          IsChecked="{Binding IsBassBoostEnabled, Mode=TwoWay}"
                                           Content="{DynamicResource BassBoost_Label}"
                                           Tag="Bass" FontSize="12"
                                           HorizontalAlignment="Left"
                                           Checked="DspBoostToggle_OnChecked"
                                           Unchecked="DspBoostToggle_OnChecked"/>
                                 <CheckBox Grid.Column="1" x:Name="TrebleBoostCheckBox"
+                                          IsChecked="{Binding IsTrebleBoostEnabled, Mode=TwoWay}"
                                           Content="{DynamicResource TrebleBoost_Label}"
                                           Tag="Treble" FontSize="12"
                                           HorizontalAlignment="Left" Margin="8,0"
                                           Checked="DspBoostToggle_OnChecked"
                                           Unchecked="DspBoostToggle_OnChecked"/>
                                 <CheckBox Grid.Column="2" x:Name="SubBassFilterCheckBox"
+                                          IsChecked="{Binding IsSubBassFilterEnabled, Mode=TwoWay}"
                                           Content="{DynamicResource SubBassFilter_Label}"
                                           Tag="SubBass" FontSize="12"
                                           HorizontalAlignment="Left"
@@ -232,24 +237,28 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <CheckBox Grid.Column="0" x:Name="LoudnessCheckBox"
+                                          IsChecked="{Binding IsLoudnessNormalizationEnabled, Mode=TwoWay}"
                                           Content="{DynamicResource Loudness_Label}"
                                           Tag="Loudness" FontSize="12"
                                           HorizontalAlignment="Left" Margin="0,0,14,0"
                                           Checked="DspSpatialToggle_OnChecked"
                                           Unchecked="DspSpatialToggle_OnChecked"/>
                                 <CheckBox Grid.Column="1" x:Name="StereoWidthCheckBox"
+                                          IsChecked="{Binding IsStereoWidenEnabled, Mode=TwoWay}"
                                           Content="{DynamicResource StereoWidth_Label}"
                                           Tag="StereoWidth" FontSize="12"
                                           HorizontalAlignment="Left" Margin="0,0,14,0"
                                           Checked="DspSpatialToggle_OnChecked"
                                           Unchecked="DspSpatialToggle_OnChecked"/>
                                 <CheckBox Grid.Column="2" x:Name="CrossfeedCheckBox"
+                                          IsChecked="{Binding IsCrossfeedEnabled, Mode=TwoWay}"
                                           Content="{DynamicResource Crossfeed_Label}"
                                           Tag="Crossfeed" FontSize="12"
                                           HorizontalAlignment="Left" Margin="0,0,14,0"
                                           Checked="DspSpatialToggle_OnChecked"
                                           Unchecked="DspSpatialToggle_OnChecked"/>
                                 <CheckBox Grid.Column="3" x:Name="MonoCheckBox"
+                                          IsChecked="{Binding IsMonoEnabled, Mode=TwoWay}"
                                           Content="{DynamicResource Mono_Label}"
                                           Tag="Mono" FontSize="12"
                                           HorizontalAlignment="Left"
@@ -266,7 +275,7 @@
                                     <ColumnDefinition Width="64"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="L" Foreground="{DynamicResource RazerTextMuted}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <Slider Grid.Column="1" x:Name="BalanceSlider" Minimum="-1" Maximum="1" Value="0" TickFrequency="0.05" ValueChanged="BalanceSlider_OnValueChanged" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="{DynamicResource Balance_Label}"/>
+                                <Slider Grid.Column="1" x:Name="BalanceSlider" Minimum="-1" Maximum="1" Value="{Binding Balance, Mode=TwoWay}" TickFrequency="0.05" ValueChanged="BalanceSlider_OnValueChanged" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="{DynamicResource Balance_Label}"/>
                                 <TextBlock Grid.Column="2" Text="R" Foreground="{DynamicResource RazerTextMuted}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock Grid.Column="3" x:Name="BalanceValueText" Text="0" Foreground="{DynamicResource RazerTextMain}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                             </Grid>
@@ -274,52 +283,52 @@
                             <!-- 10 вертикальних слайдерів: 31 Гц … 16 кГц -->
                             <UniformGrid Columns="10">
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider0" Tag="0" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider0" Tag="0" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[0].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="31" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText0" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider1" Tag="1" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider1" Tag="1" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[1].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="62" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText1" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider2" Tag="2" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider2" Tag="2" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[2].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="125" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText2" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider3" Tag="3" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider3" Tag="3" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[3].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="250" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText3" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider4" Tag="4" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider4" Tag="4" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[4].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="500" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText4" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider5" Tag="5" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider5" Tag="5" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[5].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="1k" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText5" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider6" Tag="6" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider6" Tag="6" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[6].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="2k" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText6" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider7" Tag="7" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider7" Tag="7" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[7].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="4k" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText7" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider8" Tag="8" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider8" Tag="8" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[8].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="8k" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText8" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Margin="1,0">
-                                    <Slider x:Name="EqSlider9" Tag="9" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="0" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
+                                    <Slider x:Name="EqSlider9" Tag="9" Orientation="Vertical" Height="120" Minimum="-12" Maximum="12" Value="{Binding Eq.Bands[9].GainDb, Mode=TwoWay}" TickFrequency="1" TickPlacement="TopLeft" ValueChanged="EqSlider_OnValueChanged" HorizontalAlignment="Center"/>
                                     <TextBlock Text="16k" Foreground="{DynamicResource RazerTextMuted}" FontSize="10" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                                     <TextBlock x:Name="EqDbText9" Text="0.0 dB" Foreground="{DynamicResource RazerTextMain}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
@@ -440,7 +449,7 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" Text="{DynamicResource Language_Label}" Foreground="{DynamicResource RazerTextMuted}" VerticalAlignment="Center" FontSize="12" Margin="0,0,12,0"/>
-                            <ComboBox Grid.Column="1" x:Name="LanguageComboBox" SelectionChanged="LanguageComboBox_OnSelectionChanged" HorizontalAlignment="Left" Width="140" Height="26">
+                            <ComboBox Grid.Column="1" x:Name="LanguageComboBox" SelectionChanged="LanguageComboBox_OnSelectionChanged" SelectedValuePath="Tag" SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}" HorizontalAlignment="Left" Width="140" Height="26">
                                 <ComboBoxItem Content="{DynamicResource Language_Ukrainian}" Tag="uk-UA"/>
                                 <ComboBoxItem Content="{DynamicResource Language_English}" Tag="en-US"/>
                             </ComboBox>
@@ -448,6 +457,7 @@
                         
                         <!-- Захист слуху: попередження при підсиленні >150% -->
                         <CheckBox x:Name="HearingProtectionCheckBox"
+                                  IsChecked="{Binding IsHearingProtectionEnabled, Mode=TwoWay}"
                                   Content="{DynamicResource HearingProtection_Label}"
                                   Click="HearingProtectionCheckBox_OnClick"
                                   Margin="0,0,0,10"/>
@@ -493,6 +503,7 @@
 
                         <!-- Журнал подій: увімкнення логування + відкрити log.txt -->
                         <CheckBox x:Name="LoggingEnabledCheckBox"
+                                  IsChecked="{Binding IsLoggingEnabled, Mode=TwoWay}"
                                   Content="{DynamicResource Logging_Label}"
                                   Click="LoggingEnabledCheckBox_OnClick"
                                   Margin="0,0,0,10"/>
