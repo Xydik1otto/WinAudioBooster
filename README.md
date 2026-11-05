@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Build](https://img.shields.io/github/actions/workflow/status/Xydik1otto/WinAudioBooster/build.yml?branch=main&label=build&logo=github)](https://github.com/Xydik1otto/WinAudioBooster/actions/workflows/build.yml)
+[![Build](https://img.shields.io/github/actions/workflow/status/Xydik1otto/WinAudioBooster/build.yml?branch=master&label=build&logo=github)](https://github.com/Xydik1otto/WinAudioBooster/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/actions/workflow/status/Xydik1otto/WinAudioBooster/release.yml?label=release&logo=github)](https://github.com/Xydik1otto/WinAudioBooster/actions/workflows/release.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/Xydik1otto/WinAudioBooster?logo=github)](https://github.com/Xydik1otto/WinAudioBooster/releases)
 [![License: MIT](https://img.shields.io/github/license/Xydik1otto/WinAudioBooster)](LICENSE)

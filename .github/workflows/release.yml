@@ -63,7 +63,7 @@ jobs:
           generate_release_notes: true
 
   # Окремий job ПІСЛЯ релізу: рахує SHA256 опублікованого exe та оновлює
-  # маніфести winget і Scoop прямо в репо (коміт у main).
+  # маніфести winget і Scoop прямо в репо (коміт у master).
   update-manifests:
     name: Update manifests hashes
     needs: release
