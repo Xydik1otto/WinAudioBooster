@@ -172,27 +172,29 @@ public class UpdateService
 
             Report($"Завантажено {new FileInfo(downloadedFile).Length:N0} байт.");
 
-            // Перевірка цілісності за SHA256 (якщо digest переданий)
+            // Перевірка цілісності за SHA256 — ОБОВ'ЯЗКОВА (fail-closed):
+            // без digest з GitHub API оновлення НЕ встановлюється, бо запуск
+            // неперевіреного exe — це шлях до remote code execution.
             var expectedHex = ExtractSha256FromDigest(expectedSha256);
-            if (!string.IsNullOrEmpty(expectedHex))
+            if (string.IsNullOrEmpty(expectedHex))
             {
-                Report("Перевірка SHA256...");
-                await using var fileStream = File.OpenRead(downloadedFile);
-                var actualHex = Convert.ToHexString(await SHA256.HashDataAsync(fileStream)).ToLowerInvariant();
-
-                if (!string.Equals(actualHex, expectedHex, StringComparison.OrdinalIgnoreCase))
-                {
-                    Report("Помилка: SHA256 завантаженого файлу не збігається з очікуваним. Оновлення скасовано.");
-                    try { File.Delete(downloadedFile); } catch { }
-                    return false;
-                }
-
-                Report("SHA256 збігається — файл цілий.");
+                Report("Помилка: GitHub не надав SHA256 для оновлення — встановлення скасовано (безпечна політика).");
+                try { File.Delete(downloadedFile); } catch { }
+                return false;
             }
-            else
+
+            Report("Перевірка SHA256...");
+            await using var fileStream = File.OpenRead(downloadedFile);
+            var actualHex = Convert.ToHexString(await SHA256.HashDataAsync(fileStream)).ToLowerInvariant();
+
+            if (!string.Equals(actualHex, expectedHex, StringComparison.OrdinalIgnoreCase))
             {
-                Report("Увага: SHA256 недоступний — перевірку цілісності пропущено.");
+                Report("Помилка: SHA256 завантаженого файлу не збігається з очікуваним. Оновлення скасовано.");
+                try { File.Delete(downloadedFile); } catch { }
+                return false;
             }
+
+            Report("SHA256 збігається — файл цілий.");
 
             // Шлях до поточного виконуваного файлу
             var currentExe = Environment.ProcessPath;

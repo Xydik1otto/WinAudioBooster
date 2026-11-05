@@ -49,6 +49,9 @@ public static class AudioDeviceSwitcher
     {
         try
         {
+            // Захист від PowerShell-ін'єкції: device id потрапляє у одинарні лапки,
+            // тому кожну одинарну лапку у вхідному рядку подвоюємо (PS-екранування).
+            string deviceIdEscaped = (deviceId ?? string.Empty).Replace("'", "''");
             string psScript = $@"
                 $code = @'
                 using System;
@@ -67,12 +70,12 @@ public static class AudioDeviceSwitcher
                             p.SetDefault(id, 1);
                             p.SetDefault(id, 2);
                             return true;
-                         opacity {{ return false; }}
+                            }} catch {{ return false; }}
                     }}
                 }}
                 '@
                 Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
-                [AudioSet]::Set('{deviceId}')
+                [AudioSet]::Set('{deviceIdEscaped}')
             ";
 
             var psi = new ProcessStartInfo

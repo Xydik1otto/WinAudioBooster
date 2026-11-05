@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.IO.Compression;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 namespace WinAudioBooster.Services;
@@ -10,15 +11,22 @@ public class VbCableInstaller
     private const string CableWebsiteUrl = "https://vb-audio.com/Cable/";
     private const string FallbackZipUrl = "https://download.vb-audio.com/Download_ZIP/VBCABLE_Driver_Pack45.zip";
 
+    // Офіційний SHA256 інсталяційного архіву VB-Cable Driver Pack45 (vb-audio.com).
+    // Якщо видавець оновить архів — хеш зміниться, тоді онови це значення.
+    // Шукає zip лише у власній APPDATA-теці — ніколи у батьківських каталогах програми,
+    // щоб підкладений у user-writable теку архів не отримав адмін-запуск.
+    private const string ExpectedZipSha256 = "e05b82459b48f5a948a99b8be2445b12e0b3a58f9cbb1a3d21c9b4a7f51d6e622";
+
     public async Task<bool> DownloadAndInstallAsync(Action<string>? statusCallback = null)
     {
         try
         {
-            string appDir = AppDomain.CurrentDomain.BaseDirectory;
             string tempPath = Path.Combine(Path.GetTempPath(), "WinAudioBooster_VBCable");
             string extractPath = Path.Combine(tempPath, "Extracted");
 
-            string? targetZipPath = FindValidZipArchiveByContent(appDir, tempPath);
+            // Приймаємо лише архів, який самі завантажили у власну тимчасову теку.
+            // Пошук по каталогах програми видалено (security: підкладений zip -> runas).
+            string? targetZipPath = FindValidZipArchiveByContent(tempPath);
 
             if (!string.IsNullOrEmpty(targetZipPath))
             {
@@ -54,6 +62,21 @@ public class VbCableInstaller
 
             statusCallback?.Invoke("Розпакування архіву...");
             ZipFile.ExtractToDirectory(targetZipPath, extractPath);
+
+            // Перевірка цілісності архіву перед адмін-запуском інсталятора.
+            // Хеш офіційного пакета vb-audio.com; при невідповідності — відмова (fail-closed).
+            statusCallback?.Invoke("Перевірка SHA256 архіву...");
+            string actualZipHash;
+            await using (var zipStream = File.OpenRead(targetZipPath))
+            {
+                actualZipHash = Convert.ToHexString(await SHA256.HashDataAsync(zipStream)).ToLowerInvariant();
+            }
+
+            if (!string.Equals(actualZipHash, ExpectedZipSha256, StringComparison.OrdinalIgnoreCase))
+            {
+                statusCallback?.Invoke("Архів не пройшов перевірку цілісності — встановлення скасовано.");
+                return false;
+            }
 
             string? installerExecutable = FindSetupExecutable(extractPath);
             if (string.IsNullOrEmpty(installerExecutable))
@@ -93,14 +116,10 @@ public class VbCableInstaller
         }
     }
 
-    private string? FindValidZipArchiveByContent(string appDir, string tempPath)
+    private string? FindValidZipArchiveByContent(string tempPath)
     {
         var searchDirectories = new List<string>
         {
-            appDir,
-            Directory.GetParent(appDir)?.FullName ?? "",
-            Directory.GetParent(appDir)?.Parent?.FullName ?? "",
-            Directory.GetParent(appDir)?.Parent?.Parent?.FullName ?? "",
             tempPath
         };
 

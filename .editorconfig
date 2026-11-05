@@ -1,0 +1,101 @@
+# ============================================================
+# .editorconfig — консервативні налаштування для всього репозиторію
+# Стратегія: ЄДИНІСТЬ форматування (utf-8, lf, відступи, trailing whitespace)
+# БЕЗ агресивних style-правил (не нав'язуємо var, expression-bodied тощо).
+# EnforceCodeStyleInBuild читає цей файл під час dotnet build — тому тут
+# свідомо НЕ вмикаються severity-правила, що ламають збірку.
+# ============================================================
+
+root = true
+
+# --- Усі файли за замовчуванням -------------------------------
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# --- C#: відступ 4 пробіли (стандарт для .NET) ----------------
+[*.cs]
+indent_style = space
+indent_size = 4
+# Зверніть увагу: жодних csharp_* style-правил тут немає навмисно —
+# консервативний профіль, стиль коду не змінюємо.
+
+# --- JSON / YAML / Markdown: відступ 2 пробіли ----------------
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Markdown: прибирати trailing whitespace не можна (дві пробіли = перенос рядка)
+[*.md]
+trim_trailing_whitespace = false
+
+# --- XML-подібні файли (XAML, csproj, props, targets): 2 пробіли
+# (csproj у репозиторії відформатований з 4 пробілами; тут задано 2 для
+# нових файлів — існуючі файли не переформатуються автоматично)
+[*.{xaml,csproj,props,targets,config,xml}]
+indent_style = space
+indent_size = 2
+
+# --- Native C++ (native\): НЕ авто-форматуємо -----------------
+# Немає власних правил — файл лишається як є, щоб не конфліктувати
+# з форматуванням Visual Studio C++ (власні .editorconfig за потреби).
+[*.{cpp,h,hpp,c,cc}]
+indent_style = space
+indent_size = 4
+
+# ============================================================
+# Точкові придушення CA-правил (кожен — з поясненням).
+# Увімкнено EnableNETAnalyzers + AnalysisLevel=latest-recommended у
+# WinAudioBooster.csproj; ці правила дають лише шум/мікрооптимізації,
+# а виправлення потребували б редагування коду поза межами цього етапу.
+# Не суцільний blanket — лише конкретні коди, що реально з'явились у білді.
+# ============================================================
+[*.cs]
+
+# CA1805 — «значення збігається з дефолтом типу»: надлишкова ініціалізація
+# (int x = 0 тощо). Чистий шум, продуктивності/коректності не стосується.
+dotnet_diagnostic.CA1805.severity = none
+
+# CA1822 — «роби член static»: стосуються приватних helper-методів та
+# членів, на які посилаються байндинги/інстанси (Mvvm-патерн). Переведення
+# у static — рефакторинг API, що ламає архітектуру заради стилю.
+dotnet_diagnostic.CA1822.severity = none
+
+# CA1816 — «додай GC.SuppressFinalize у Dispose»: класи проєкту не мають
+# фіналізаторів (Dispose викликається явно в OnClosed), тому правило
+# не дає жодного реального захисту тут.
+dotnet_diagnostic.CA1816.severity = none
+
+# CA1310 — «використовуй StringComparison у StartsWith/EndsWith»:
+# порівнюються імена процесів/файлів/ключів налаштувань; поведінка за
+# культурою тут свідома і не є джерелом багів. Виправлення — редагування коду.
+dotnet_diagnostic.CA1310.severity = none
+
+# CA1304 / CA1305 / CA1311 — культуро-залежні ToLower/Format: аналогічно,
+# рядки — імена процесів і форматований UI-текст для поточного користувача.
+dotnet_diagnostic.CA1304.severity = none
+dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA1311.severity = none
+
+# CA1866 — StartsWith(char) замість односимвольного рядка: мікрооптимізація
+# на шляхах, що виконуються рідко; читабельність важливіша.
+dotnet_diagnostic.CA1866.severity = none
+
+# CA1869 — кешувати JsonSerializerOptions: мікрооптимізація серіалізації
+# налаштувань (викликається раз на збереження), без видимого ефекту.
+dotnet_diagnostic.CA1869.severity = none
+
+# CA1861 — «винеси масив у static readonly»: аргументи-масиви в одиничних
+# викликах; виправлення ускладнює код заради нульового виграшу.
+dotnet_diagnostic.CA1861.severity = none
+
+# CA1510 — ThrowIfNull замість явного throw: стилістична заміна,
+# поведінка ідентична; змінювати весь код заради стилю не потрібно.
+dotnet_diagnostic.CA1510.severity = none
+
+# CA1001 — «тип володіє disposables, але не IDisposable»: хибне
+# спрацьовування для WPF Window — усі залежності звільняються явно
+# у MainWindow.OnClosed (життєвий цикл вікна ≠ IDisposable-патерн).
+dotnet_diagnostic.CA1001.severity = none

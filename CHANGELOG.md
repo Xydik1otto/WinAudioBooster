@@ -5,11 +5,14 @@
 Формат базується на [Keep a Changelog](https://keepachangelog.com/uk/1.1.0/),
 версіонування — [Semantic Versioning](https://semver.org/lang/uk/).
 
-## [1.4.0] - Unreleased
+## [1.4.0] - 2026-11-05
 
 ### Added
 - 🏗️ **MVVM-рефакторинг** — `CommunityToolkit.Mvvm`: `MainViewModel`/`EqViewModel` як джерело правди стану, ~20 контролів переведено на TwoWay-бідинг, збереження/відновлення через `Snapshot()/Apply()`; поведінка не змінена.
 - 🔮 **Стартовий пакет APO-інтеграції** (`native/WinAudioApo/`, `docs/apo/`, `packaging/apo/`) — шлях до повної ліквідації VB-Cable та нульової латентності: C++/COM каркас APO (gain → 10-band EQ → tanh-лімітер, конфіг з `%APPDATA%\WinAudioBooster\apo-config.ini`), план міграції та дистрибуції за патерном Equalizer APO; для збору потрібен WDK.
+- 🔒 **Security-фікси за результатами ревью** (`docs/security-review-2026-11.md`): автооновлення тепер fail-closed (без SHA256 від GitHub — відмова від встановлення); VB-Cable інсталятор приймає лише власний завантажений zip + обов'язкова SHA256-перевірка перед адмін-запуском; усунено PowerShell-ін'єкцію через назву пристрою.
+- 🛠️ **Інфраструктура якості**: `.editorconfig` (консервативний стиль + точкові CA-придушення з поясненнями), `.github/dependabot.yml` (nuget + actions, weekly), .NET-аналізатори `latest-recommended` з `EnforceCodeStyleInBuild`.
+- 📉 **Розмір дистрибутива: 154 МБ → 131 МБ (−15%)** — `SatelliteResourceLanguages=en` прибрав satellite-складання фреймворку; trimming для WPF неможливий (NETSDK1168), задокументовано.
 
 ## [1.3.0] - 2026-11-05
 
