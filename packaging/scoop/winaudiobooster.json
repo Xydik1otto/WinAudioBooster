@@ -9,12 +9,12 @@
     "5. Сабміт: PR у https://github.com/ScoopInstaller/Extras ( Extras bucket) або власний bucket.",
     "6. Local перевірка: scoop install <шлях-до-JSON> або scoop checkup / scoop bucket add."
   ],
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Volume booster for Windows up to 300% with 10-band EQ, compressor and soft limiter (via VB-Audio CABLE)",
   "homepage": "https://github.com/Xydik1otto/WinAudioBooster",
   "license": "MIT",
-  "url": "https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.4.0/WinAudioBooster.exe",
-  "hash": "5483bbea05e152d164e426267642507b66c99b49c85d39407a487606bdf32dc0",
+  "url": "https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.5.0/WinAudioBooster.exe",
+  "hash": "c51de5fcddee6e70350b1962e6cc2ed841aea7e3691fa96ea31e4cfbde641f0b",
   "notes": "Single-file portable build. VB-Audio CABLE driver is offered for installation on first launch.",
   "bin": [
     [
