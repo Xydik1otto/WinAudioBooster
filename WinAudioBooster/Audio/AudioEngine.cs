@@ -32,14 +32,15 @@ public class AudioEngine : IDisposable
         {
             _capture = new WasapiLoopbackCapture(captureCableDevice);
 
-            _waveBuffer = new BufferedWaveProvider(_capture.WaveFormat)
+            // Буфер лише згладжує тремтіння таймерів: DataAvailable надходить
+            // кожні ~10 мс, тому 250 мс вміщує запас на ~25 пропущених
+            // колбеків. ReadFully=true дає тишу, якщо буфер усе ж спорожнів
+            // (безпечний захист від underrun'ів замість 2 с накопиченої затримки).
+            // NAudio 2.4+: BufferDuration лише для читання — розмір задається
+            // конструктором (optional TimeSpan bufferDuration).
+            _waveBuffer = new BufferedWaveProvider(_capture.WaveFormat, TimeSpan.FromMilliseconds(250))
             {
                 DiscardOnBufferOverflow = true,
-                // Буфер лише згладжує тремтіння таймерів: DataAvailable надходить
-                // кожні ~10 мс, тому 250 мс вміщує запас на ~25 пропущених
-                // колбеків. ReadFully=true дає тишу, якщо буфер усе ж спорожнів
-                // (безпечний захист від underrun'ів замість 2 с накопиченої затримки).
-                BufferDuration = TimeSpan.FromMilliseconds(250),
                 ReadFully = true
             };
 
