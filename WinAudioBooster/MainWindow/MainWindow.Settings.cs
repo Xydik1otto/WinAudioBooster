@@ -1,9 +1,15 @@
 using WinAudioBooster.Services.ViewModels;
+using WinAudioBooster.Models;
 
 namespace WinAudioBooster;
 
 public partial class MainWindow
 {
+    private List<CustomTheme> _customThemes = new();
+
+    // Пункти ComboBox тем, додані динамічно (кастомні гами) — для очищення при перебудові списку
+    private readonly List<ComboBoxItem> _customThemeItems = new();
+
     private void InitializeTrayAndHotkeys()
     {
         // Авто-тема: стежимо за зміною світлої/темної теми Windows
@@ -98,6 +104,10 @@ public partial class MainWindow
         // [ObservableProperty], а бідинг сам оновлює слайдери/чекбокси/комбобокс мови
         _vm.Apply(settings);
 
+        // Користувацькі гами: читаємо зі збережених налаштувань і додаємо у ComboBox
+        _customThemes = settings.CustomThemes ?? new List<CustomTheme>();
+        PopulateCustomThemesInComboBox();
+
         SelectCurrentLanguageInComboBox(string.IsNullOrEmpty(settings.Language) ? null : settings.Language);
         RefreshPresetsList(settings.SelectedPresetName);
 
@@ -124,10 +134,23 @@ public partial class MainWindow
 
         if (!string.IsNullOrEmpty(settings.SelectedTheme))
         {
-            SelectCurrentThemeInComboBox(settings.SelectedTheme);
+            var savedCustom = ThemeManager.FindCustomTheme(_customThemes, settings.SelectedTheme);
+            if (savedCustom != null)
+            {
+                // Кастомна гама: ApplyTheme для невідомого ім'я застосовує базовий скін
+                // (fallback StudioRack), гаму накладаємо ПІСЛЯ нього — як LightOverlay
+                ThemeManager.ApplyTheme(settings.SelectedTheme);
+                ThemeManager.ApplyCustomTheme(savedCustom);
+                SelectCustomThemeInComboBox(savedCustom.Name);
+            }
+            else
+            {
+                SelectCurrentThemeInComboBox(settings.SelectedTheme);
+                ThemeManager.ApplyTheme(settings.SelectedTheme);
+            }
+
             // Тема не прив'язана бідингом (у ComboBox немає пункту «Razer Green») — синхронізуємо стан у VM
             _vm.SelectedTheme = settings.SelectedTheme;
-            ThemeManager.ApplyTheme(settings.SelectedTheme);
         }
         else
         {
@@ -173,6 +196,9 @@ public partial class MainWindow
         settings.DevicePresetBindings = existing.DevicePresetBindings;
         settings.AppVolumeRules = existing.AppVolumeRules;
 
+        // Користувацькі гами: список живе у MainWindow (редагується кнопками тем)
+        settings.CustomThemes = _customThemes;
+
         // Нічний режим за розкладом (стан лишається в контролах, не в ViewModel)
         settings.QuietHoursEnabled = QuietHoursCheckBox.IsChecked == true;
         settings.QuietHoursStart = Math.Max(0, QuietHoursStartComboBox.SelectedIndex);
@@ -198,6 +224,9 @@ public partial class MainWindow
         settings.SelectedOutputDeviceName = selectedOutputInfo?.Name ?? string.Empty;
         settings.DevicePresetBindings = existing.DevicePresetBindings;
         settings.AppVolumeRules = existing.AppVolumeRules;
+
+        // Користувацькі гами: список живе у MainWindow (редагується кнопками тем)
+        settings.CustomThemes = _customThemes;
 
         // Нічний режим за розкладом (стан лишається в контролах, не в ViewModel)
         settings.QuietHoursEnabled = QuietHoursCheckBox.IsChecked == true;
@@ -320,6 +349,9 @@ public partial class MainWindow
 
     private void ThemeComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // Кнопка «Видалити» активна лише для користувацької гами (навіть під час ініціалізації)
+        UpdateDeleteThemeButtonState();
+
         if (_isInitializing) return;
 
         if (ThemeComboBox.SelectedItem is ComboBoxItem selectedItem)
@@ -330,7 +362,13 @@ public partial class MainWindow
             // Синхронізуємо вибір теми у ViewModel (джерело правди для збереження)
             _vm.SelectedTheme = themeName;
 
-            if (themeName == ThemeManager.AutoThemeName)
+            var customTheme = ThemeManager.FindCustomTheme(_customThemes, themeName);
+            if (customTheme != null)
+            {
+                // Користувацька гама: оверврайт пензлів поверх базового скіна
+                ThemeManager.ApplyCustomTheme(customTheme);
+            }
+            else if (themeName == ThemeManager.AutoThemeName)
             {
                 // Авто-режим: база — Windows 11 Fluent, світла тема Windows перекривається overlay
                 ThemeManager.SetAutoMode("Windows 11");
@@ -343,6 +381,198 @@ public partial class MainWindow
             SaveCurrentSettings();
         }
     }
+
+    // =====================================================================
+    //  Користувацькі колірні гами (CustomTheme): UI-логіка
+    // =====================================================================
+
+    // Перебудовує хвіст ComboBox тем: прибирає старі динамічні пункти, додає кастомні гами
+    private void PopulateCustomThemesInComboBox()
+    {
+        foreach (var item in _customThemeItems)
+        {
+            ThemeComboBox.Items.Remove(item);
+        }
+        _customThemeItems.Clear();
+
+        // Вбудовані назви тем (Tag у XAML) — колізії не додаємо
+        var builtinNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (ComboBoxItem item in ThemeComboBox.Items)
+        {
+            if (item.Tag is string tag) builtinNames.Add(tag);
+        }
+
+        foreach (var theme in _customThemes)
+        {
+            if (string.IsNullOrWhiteSpace(theme.Name) || builtinNames.Contains(theme.Name)) continue;
+
+            var comboItem = new ComboBoxItem { Content = theme.Name, Tag = theme.Name };
+            _customThemeItems.Add(comboItem);
+            ThemeComboBox.Items.Add(comboItem);
+        }
+
+        UpdateDeleteThemeButtonState();
+    }
+
+    // Виділяє кастомну гаму в ComboBox за назвою (пункт динамічний, тому окремий хелпер)
+    private void SelectCustomThemeInComboBox(string themeName)
+    {
+        var item = _customThemeItems.FirstOrDefault(i => i.Tag as string == themeName);
+        if (item != null) ThemeComboBox.SelectedItem = item;
+    }
+
+    // «Видалити» активне лише коли виділено користувацьку гаму (вбудовані видаляти не можна)
+    private void UpdateDeleteThemeButtonState()
+    {
+        bool isCustomSelected = ThemeComboBox.SelectedItem is ComboBoxItem item &&
+                                _customThemeItems.Contains(item);
+        DeleteThemeButton.IsEnabled = isCustomSelected;
+    }
+
+    // «Створити з поточної...»: зчитує поточні пензлі, питає назву, зберігає гаму і вибирає її
+    private void CreateThemeButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new CustomThemeNameWindow { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+
+        string name = dialog.ThemeName?.Trim() ?? string.Empty;
+        if (name.Length == 0)
+        {
+            MessageBox.Show(GetString("CustomTheme_EmptyName"), GetString("CustomTheme_NameTitle"),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Унікальність: серед кастомних і серед вбудованих тем
+        bool duplicate = ThemeManager.FindCustomTheme(_customThemes, name) != null ||
+                         ThemeComboBox.Items.OfType<ComboBoxItem>()
+                             .Any(i => string.Equals(i.Tag as string, name, StringComparison.OrdinalIgnoreCase));
+        if (duplicate)
+        {
+            MessageBox.Show(GetString("CustomTheme_DuplicateName"), GetString("CustomTheme_NameTitle"),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Зчитуємо поточні пензлі (останній застосований скін/overlay/гама) → нова гама
+        var theme = ThemeManager.CreateCustomThemeFromCurrent(name);
+        _customThemes.Add(theme);
+
+        // Персистентність одразу: гама має пережити рестарт навіть без наступних збережень
+        SaveCurrentSettings();
+
+        // Перебудовуємо список і вибираємо нову тему (SelectionChanged сам застосує гаму)
+        PopulateCustomThemesInComboBox();
+        SelectCustomThemeInComboBox(name);
+    }
+
+    // «Видалити»: прибирає виділену користувацьку гаму; вбудовані теми захищені
+    private void DeleteThemeButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (ThemeComboBox.SelectedItem is not ComboBoxItem selectedItem) return;
+
+        string themeName = selectedItem.Tag as string ?? selectedItem.Content?.ToString() ?? string.Empty;
+        var theme = ThemeManager.FindCustomTheme(_customThemes, themeName);
+
+        if (theme == null)
+        {
+            // Вбудовані теми видаляти не можна
+            MessageBox.Show(GetString("CustomTheme_DeleteBuiltin"), GetString("DeleteTheme_Btn"),
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            // Шаблон «...«{0}»?» із ресурсів — підставляємо назву теми
+            GetString("CustomTheme_DeleteConfirm").Replace("{0}", theme.Name),
+            GetString("DeleteTheme_Btn"), MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (confirm != MessageBoxResult.Yes) return;
+
+        bool wasSelected = string.Equals(_vm.SelectedTheme, theme.Name, StringComparison.OrdinalIgnoreCase);
+        _customThemes.Remove(theme);
+        PopulateCustomThemesInComboBox();
+
+        if (wasSelected)
+        {
+            // Видалена тема була активною — повертаємось до нейтрального базового скіна
+            var fallback = ThemeComboBox.Items.OfType<ComboBoxItem>()
+                .FirstOrDefault(i => (i.Tag as string) == "Windows 11");
+            if (fallback != null) ThemeComboBox.SelectedItem = fallback; // обробник сам застосує і збереже
+            else _vm.SelectedTheme = "Windows 11";
+        }
+        else
+        {
+            SaveCurrentSettings();
+        }
+    }
+
+    // Ресурсний рядок за ключем (з fallback на ключ, якщо ресурс відсутній)
+    private static string GetString(string key) =>
+        Application.Current.TryFindResource(key) as string ?? key;
+
+    /// <summary>
+    /// Мінімальний діалог вводу назви користувацької теми (замість Microsoft.VisualBasic.InputBox —
+    /// без додаткової залежності і з локалізованими кнопками).
+    /// </summary>
+    private sealed class CustomThemeNameWindow : Window
+    {
+        private readonly TextBox _nameBox;
+
+        public string ThemeName => _nameBox.Text;
+
+        public CustomThemeNameWindow()
+        {
+            Title = GetStringStatic("CustomTheme_NameTitle");
+            Width = 340;
+            Height = 150;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
+            ShowInTaskbar = false;
+
+            var label = new TextBlock
+            {
+                Margin = new Thickness(12, 12, 12, 6),
+                Text = GetStringStatic("CustomTheme_NameLabel")
+            };
+
+            _nameBox = new TextBox { Margin = new Thickness(12, 0, 12, 12), Height = 26, VerticalContentAlignment = VerticalAlignment.Center };
+
+            var okButton = new Button
+            {
+                Content = GetStringStatic("CustomTheme_Ok"),
+                Width = 80, Height = 26, IsDefault = true, Margin = new Thickness(0, 0, 8, 0)
+            };
+            okButton.Click += (_, _) => DialogResult = true;
+
+            var cancelButton = new Button
+            {
+                Content = GetStringStatic("CustomTheme_Cancel"),
+                Width = 80, Height = 26, IsCancel = true
+            };
+
+            var buttons = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 0, 12, 12)
+            };
+            buttons.Children.Add(okButton);
+            buttons.Children.Add(cancelButton);
+
+            var root = new StackPanel();
+            root.Children.Add(label);
+            root.Children.Add(_nameBox);
+            root.Children.Add(buttons);
+
+            Content = root;
+            Loaded += (_, _) => { _nameBox.Focus(); _nameBox.SelectAll(); };
+        }
+
+        // Статичний доступ до ресурсів (діалог ще не має вікна-власника)
+        private static string GetStringStatic(string key) =>
+            Application.Current.TryFindResource(key) as string ?? key;
+    }
+
 
     private void SelectCurrentLanguageInComboBox(string? savedLanguageCode = null)
     {

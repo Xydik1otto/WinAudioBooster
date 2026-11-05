@@ -1,4 +1,4 @@
-# WinAudioBooster 🎚️
+# WinAudioBooster
 
 <div align="center">
 
@@ -11,58 +11,58 @@
 </div>
 
 <p align="center">
-  <img src="docs/screenshots/main-window.png" alt="Головне вікно WinAudioBooster" width="700">
+  <img src="docs/screenshots/main-window.png" alt="WinAudioBooster main window" width="700">
 </p>
 
-**WinAudioBooster** — це програма для Windows, яка підсилює гучність системного звуку до **300%** та додає професійну DSP-обробку: 10-смуговий еквалайзер, компресор і м'який лімітер. Додаток працює через віртуальний аудіо-кабель VB-Audio CABLE: усі звуки Windows перенаправляються на віртуальний пристрій, захоплюються через WASAPI loopback, обробляються і виводяться на реальні динаміки.
+**WinAudioBooster** is a Windows application that boosts system volume up to **300%** and adds professional DSP processing: a 10-band equalizer, compressor, and soft limiter. The application works through a VB-Audio CABLE virtual audio device: all Windows audio is redirected to the virtual device, captured via WASAPI loopback, processed, and played back on the physical speakers.
 
-## ✨ Можливості
+## Features
 
-- 🔊 **Бустер гучності до 300%** — підсилення понад 100% реалізується через програмний DSP-gain, а не стандартний мікшер Windows.
-- 🎛️ **10-смуговий еквалайзер** — тонке налаштування тембру в реальному часі.
-- 🗜️ **Компресор** — поріг, співвідношення, атака та відновлення (attack/release) для вирівнювання динаміки.
-- 🛑 **М'який лімітер** — стеля (ceiling) в дБ, захищає від перевантаження та кліпінгу.
-- 💾 **Пресети** — вбудовані (Light Boost, Max Boost, Headphones, Games, Calls, **Night Mode**) та власні, зі збереженням у файл.
-- 📢 **Loudness normalization** — автоматичне вирівнювання гучності (RMS AGC): тихі джерела піднімаються, гучні не «вилітають».
-- ↔️ **Stereo widening** — розширення стереопанорами (M/S-обробка) для відчуття «широкого» звуку.
-- 🎧 **Crossfeed** — емуляція «спікерів із навушників»: зменшує втому при довгому прослуховуванні.
-- ⚖️ **Balance / Mono** — регулювання балансу L/R та перемикання у моно (зручно для навушників з одним каналом).
-- 📊 **Спектр-візуалізатор** — живий спектр з історією піків прямо у головному вікні.
-- 🎸 **Bass Boost / Treble Boost** — 1-клік тумблери поверх еквалайзера.
-- 🎚️ **Мікшер додатків** — індивідуальні правила гучності для окремих процесів, які **пам'ятаються між сесіями**.
-- 🎯 **Автопрофілі пристроїв** — прив'язка «пристрій виводу → пресет»: підключили навушники — профіль увімкнувся сам.
-- 🪟 **Міні-вікно** — компактний режим з основними регуляторами.
-- 🔔 **Трей** — керування з системного лотка, мінімізація в трей.
-- ⌨️ **Гарячі клавіші** — `Ctrl + Alt + B` бустер, `Ctrl + Alt + 1..5` пресети, `Ctrl + Alt + D` bypass DSP.
-- ⏰ **Таймер сну** — вимкнення звуку через 15/30/60 хв з плавним fade-out.
-- 🌗 **Авто-тема** — режим «Auto (Windows)» слідкує за системною темною/світлою темою.
-- 🛡️ **Захист слуху** — попередження при підсиленні понад 150%.
-- 🚀 **Автозапуск** — старт разом із Windows.
-- 🎨 **4 теми** — Win11 Fluent, Arch Linux, Windows XP, StudioRack (+ світлий overlay).
-- 🌐 **UA / EN локалізація** — українська та англійська мови інтерфейсу.
-- 🔁 **Автоперемикання виводу** — Windows автоматично перемикається на VB-Cable при старті бустера і назад на фізичний пристрій при зупинці.
-- ⬆️ **Автооновлення в один клік** — завантаження та встановлення нового exe прямо з програми (перевірка SHA256, бекап `.bak`, авто-перезапуск).
-- 📝 **Файл-лог** — діагностика пишеться у `%APPDATA%\WinAudioBooster\log.txt`.
+- **Volume booster up to 300%** — gain above 100% is implemented as software DSP gain, not through the standard Windows mixer.
+- **10-band equalizer** — fine-grained tone control in real time.
+- **Compressor** — threshold, ratio, attack, and release for leveling dynamics.
+- **Soft limiter** — a ceiling in dB that protects against overload and clipping.
+- **Presets** — built-in (Light Boost, Max Boost, Headphones, Games, Calls, **Night Mode**) and custom, saved to a file.
+- **Loudness normalization** — automatic level alignment (RMS AGC): quiet sources are raised, loud ones do not clip.
+- **Stereo widening** — widening of the stereo image (M/S processing).
+- **Crossfeed** — a "speakers through headphones" effect that reduces fatigue during long listening sessions.
+- **Balance / Mono** — L/R balance control and mono switching (useful for single-channel headphones).
+- **Spectrum visualizer** — live spectrum with peak history in the main window.
+- **Bass Boost / Treble Boost** — one-click toggles on top of the equalizer.
+- **Per-app mixer** — individual volume rules for separate processes, persisted between sessions.
+- **Device auto-profiles** — "output device to preset" bindings: connecting headphones activates the profile automatically.
+- **Mini window** — compact mode with the main controls.
+- **System tray** — control from the notification area, minimize to tray.
+- **Hotkeys** — `Ctrl + Alt + B` booster, `Ctrl + Alt + 1..5` presets, `Ctrl + Alt + D` DSP bypass.
+- **Sleep timer** — mutes audio after 15/30/60 minutes with a smooth fade-out.
+- **Auto theme** — the "Auto (Windows)" mode follows the system dark/light theme.
+- **Hearing protection** — a warning when boosting above 150%.
+- **Autostart** — starts with Windows.
+- **4 themes** — Win11 Fluent, Arch Linux, Windows XP, StudioRack (+ light overlay).
+- **UA / EN localization** — Ukrainian and English interface languages.
+- **Automatic output switching** — Windows switches to VB-Cable when the booster starts and back to the physical device when it stops.
+- **One-click auto-update** — download and install a new exe directly from the application (SHA256 verification, `.bak` backup, automatic restart).
+- **File logging** — diagnostics are written to `%APPDATA%\WinAudioBooster\log.txt`.
 
-## 📋 Вимоги
+## Requirements
 
 - **Windows 10 / 11 (x64)**.
-- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) — **не потрібен** для версії з GitHub Releases (single-file, self-contained).
-- **VB-Audio CABLE** (віртуальний аудіо-кабель) — **додаток сам пропонує його встановити** при першому запуску; інсталятор вбудований (`Services/VbCableInstaller.cs`), архів драйвера може лежати поруч з exe або завантажуватися автоматично.
+- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) — **not required** for the GitHub Releases build (single-file, self-contained).
+- **VB-Audio CABLE** (virtual audio cable) — **the application offers to install it on first launch**; the installer is built in (`Services/VbCableInstaller.cs`), and the driver archive can sit next to the exe or be downloaded automatically.
 
-## 📦 Встановлення
+## Installation
 
-### Варіант 1 — готовий білд (рекомендовано)
+### Option 1 — prebuilt binary (recommended)
 
-1. Відкрийте сторінку [Releases](https://github.com/Xydik1otto/WinAudioBooster/releases).
-2. Завантажте `WinAudioBooster.exe` з останнього релізу.
-3. Запустіть exe — інсталяція не потрібна, файл самодостатній (self-contained).
-4. При першому запуску погодьтеся на встановлення **VB-Audio CABLE**, якщо він не знайдений у системі.
-5. **Автооновлення**: додаток сам перевіряє оновлення через GitHub Releases. При наявності нової версії можна завантажити та встановити її прямо з програми — вона завантажить новий `WinAudioBooster.exe`, перевірить його SHA256, збереже старий файл як `WinAudioBooster.exe.bak`, замінить його і перезапуститься після закриття поточного процесу.
+1. Open the [Releases](https://github.com/Xydik1otto/WinAudioBooster/releases) page.
+2. Download `WinAudioBooster.exe` from the latest release.
+3. Run the exe — no installation is required; the file is self-contained.
+4. On first launch, accept the installation of **VB-Audio CABLE** if it is not found on the system.
+5. **Auto-update**: the application checks for updates through GitHub Releases on its own. When a new version is available, it can be downloaded and installed directly from the application — it downloads the new `WinAudioBooster.exe`, verifies its SHA256, saves the old file as `WinAudioBooster.exe.bak`, replaces it, and restarts after the current process exits.
 
-### Варіант 2 — збірка з сорців
+### Option 2 — build from source
 
-Потрібен .NET 8 SDK:
+Requires the .NET 8 SDK:
 
 ```bash
 git clone https://github.com/Xydik1otto/WinAudioBooster.git
@@ -70,74 +70,54 @@ cd WinAudioBooster
 dotnet publish WinAudioBooster/WinAudioBooster.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 ```
 
-Готовий exe: `WinAudioBooster/bin/Release/net8.0-windows/win-x64/publish/WinAudioBooster.exe`.
+The resulting exe: `WinAudioBooster/bin/Release/net8.0-windows/win-x64/publish/WinAudioBooster.exe`.
 
-## 🚀 Використання
+## Usage
 
-1. Запустіть `WinAudioBooster.exe`.
-2. Якщо VB-Cable не встановлено — погодьтеся на встановлення та перезавантажте систему за потреби.
-3. Увімкніть **бустер** головним перемикачем — додаток перемкне системний вивід на VB-Cable і почне обробку.
-4. Відрегулюйте **Gain** (до 300%), смуги **EQ**, компресор та лімітер — або оберіть готовий **пресет**.
-5. Для тихого фонового режиму згорніть вікно в **трей**; міні-вікно доступне з головного інтерфейсу.
-6. Гарячою клавішею `Ctrl + Alt + B` (за замовчуванням) можна швидко вмикати/вимикати бустер.
+1. Run `WinAudioBooster.exe`.
+2. If VB-Cable is not installed, accept the installation and restart the system if needed.
+3. Enable the **booster** with the main switch — the application switches the system output to VB-Cable and starts processing.
+4. Adjust **Gain** (up to 300%), the **EQ** bands, the compressor, and the limiter — or pick a ready-made **preset**.
+5. For quiet background operation, minimize the window to the **tray**; the mini window is available from the main interface.
+6. The `Ctrl + Alt + B` hotkey (default) quickly toggles the booster on and off.
 
-Зупинка бустера повертає системний вивід на попередній фізичний пристрій.
+Stopping the booster returns the system output to the previous physical device.
 
-## ⚙️ Як це працює
+## How it works
 
-Коротко: усі програми Windows виводять звук на віртуальний пристрій **VB-Cable** (тимчасово призначений системним виводом за замовчуванням). Додаток захоплює цей потік через **WASAPI loopback** (`WasapiLoopbackCapture`), буферизує його (`BufferedWaveProvider`), застосовує DSP-ланцюг — gain → EQ 10 смуг → boost shelves → stereo widening → crossfeed → balance/mono → компресор → loudness AGC → м'який лімітер — і виводить результат на реальні динаміки через `WasapiOut` (за потреби з ресемплінгом `MediaFoundationResampler` під формат вихідного пристрою).
+In short: all Windows applications output audio to the virtual **VB-Cable** device (temporarily assigned as the system default output). The application captures this stream via **WASAPI loopback** (`WasapiLoopbackCapture`), buffers it (`BufferedWaveProvider`), applies the DSP chain — gain → 10-band EQ → boost shelves → stereo widening → crossfeed → balance/mono → compressor → loudness AGC → soft limiter — and plays the result on the physical speakers through `WasapiOut` (with `MediaFoundationResampler` resampling to the output device format when needed).
 
-Детальний опис архітектури та схеми потоків даних — у [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+A detailed description of the architecture and data-flow diagrams is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## 🔧 Усунення несправностей
+## Troubleshooting
 
-| Проблема | Рішення |
+| Problem | Solution |
 |---|---|
-| **Немає звуку після увімкнення бустера** | Перевірте, що бустер запущено (індикатор у вікні/треї). Переконайтеся, що в налаштуваннях обрано правильний фізичний пристрій виводу. Спробуйте перезапустити бустер — перемикач пристроїв іноді потребує повторної ініціалізації WASAPI. |
-| **«Кабель не знайдено» / VB-Cable відсутній у списку пристроїв** | Установіть VB-Audio CABLE через запропонований додатком діалог або вручну з [vb-audio.com](https://vb-audio.com/Cable/). Після встановлення **перезавантажте Windows**. Переконайтеся, що пристрій «CABLE Input» з'явився у налаштуваннях звуку Windows. |
-| **Звук є, але зависає/заїкається** | Збільште буфер: додаток використовує буфер 2 с з відкиданням при переповненні — перевірте навантаження CPU, закрийте важкі програми. |
-| **Звук спотворений на максимумі гучності** | Зменшіть Gain або увімкніть лімітер/компресор — стеля лімітера за замовчуванням −0.3 дБ захищає від кліпінгу. |
-| **Гарячі клавіші не працюють** | Комбінація може бути зайнята іншою програмою — змініть хоткей у налаштуваннях. |
-| **Програма не запускається** | Версія з Releases самодостатня (.NET вбудований). Якщо збирали з сорців — переконайтеся, що встановлено .NET 8 Desktop Runtime. |
+| **No sound after enabling the booster** | Check that the booster is running (indicator in the window/tray). Make sure the correct physical output device is selected in settings. Try restarting the booster — device switching sometimes requires WASAPI re-initialization. |
+| **"Cable not found" / VB-Cable missing from the device list** | Install VB-Audio CABLE through the dialog offered by the application or manually from [vb-audio.com](https://vb-audio.com/Cable/). After installation, **restart Windows**. Make sure the "CABLE Input" device appears in Windows sound settings. |
+| **Sound stutters or drops out** | Increase the buffer: the application uses a 2-second buffer with discard on overflow — check CPU load and close heavy applications. |
+| **Sound is distorted at maximum volume** | Reduce Gain or enable the limiter/compressor — the limiter's default ceiling of -0.3 dB protects against clipping. |
+| **Hotkeys do not work** | The combination may be taken by another application — change the hotkey in settings. |
+| **The application does not start** | The Releases build is self-contained (.NET is bundled). If you built from source, make sure the .NET 8 Desktop Runtime is installed. |
 
-## 🗂️ Де зберігаються налаштування
+## Settings location
 
-`appsettings.json` (налаштування) та `presets.json` (власні пресети) зберігаються в **`%APPDATA%\WinAudioBooster\`**. Якщо файли ще лежать поруч із виконавчим файлом (стара версія додатка) — вони автоматично переносяться при першому запуску.
+`appsettings.json` (settings) and `presets.json` (custom presets) are stored in **`%APPDATA%\WinAudioBooster\`**. If the files still sit next to the executable (an older version of the application), they are migrated automatically on first launch.
 
-## ❓ FAQ
+## FAQ
 
-**Чому потрібен VB-Audio CABLE?**
-Windows не дозволяє захоплювати системний звук напряму й одночасно виводити оброблений на ті самі динаміки. VB-Cable — віртуальний «передзвін»: усі програми грають у нього, а WinAudioBooster знімає цей потік через WASAPI loopback, обробляє і виводить на реальний пристрій. Додаток сам запропонує його встановити при першому запуску.
+**Why is VB-Audio CABLE needed?**
+Windows does not allow capturing system audio directly while simultaneously playing processed audio back on the same speakers. VB-Cable is a virtual loop: all applications play into it, and WinAudioBooster captures that stream via WASAPI loopback, processes it, and outputs it to the real device. The application offers to install it on first launch.
 
-**Чому звук запізнюється або його немає після увімкнення бустера?**
-Через віртуальний кабель + буферизацію додається невелика затримка (~250 мс) — для відео в браузері це майже непомітно, але в іграх може відчуватися. Якщо звуку немає зовсім — перевірте, що бустер запущено, у налаштуваннях обрано правильний фізичний пристрій виводу і «CABLE Input» з'явився у списку пристроїв Windows; допомагає перезапуск бустера.
+**Why is audio delayed or missing after enabling the booster?**
+The virtual cable plus buffering adds a small delay (about 250 ms) — barely noticeable for browser video, but perceptible in games. If there is no sound at all, check that the booster is running, that the correct physical output device is selected in settings, and that "CABLE Input" appears in the Windows device list; restarting the booster helps.
 
-**Як скинути налаштування?**
-Видаліть папку `%APPDATA%\WinAudioBooster\` — при наступному запуску додаток створить все заново зі значеннями за замовчуванням (власні пресети теж видаляться).
+**How do I reset settings?**
+Delete the `%APPDATA%\WinAudioBooster\` folder — on the next launch the application recreates everything from defaults (custom presets are deleted as well).
 
-**Де подивитися лог?**
-Файл логу: `%APPDATA%\WinAudioBooster\log.txt`. Додайте його до Issue, якщо щось не працює — але спочатку видаліть персональні шляхи, якщо вони там є.
+**Where is the log?**
+Log file: `%APPDATA%\WinAudioBooster\log.txt`. Attach it to an issue if something does not work — but first remove any personal paths it may contain.
 
-## 📄 Ліцензія
+## License
 
-Проект поширюється за ліцензією [MIT](LICENSE).
-
----
-
-## English (Summary)
-
-**WinAudioBooster** is a Windows volume booster and audio enhancer built with WPF (.NET 8, NAudio + AudioSwitcher.AudioApi.CoreAudio). It boosts system volume up to **300%** via DSP and adds a 10-band equalizer, compressor and soft limiter. Audio is routed through a virtual **VB-Audio CABLE** device, captured via WASAPI loopback, processed, and played back to your physical speakers.
-
-**Features:** volume boost up to 300%, 10-band EQ + bass/treble boost shelves, compressor, soft limiter, loudness normalization (RMS AGC), stereo widening, crossfeed for headphones, balance/mono, spectrum visualizer with peak history, presets (built-in + custom, incl. Night Mode), per-app mixer with persistent volume, device auto-profiles, sleep timer, auto theme, hearing-protection warning, mini window, system tray, global hotkeys (`Ctrl + Alt + B` booster, `Ctrl + Alt + 1..5` presets, `Ctrl + Alt + D` DSP bypass), autostart, 4 themes, Ukrainian/English localization, automatic default-device switching, one-click auto-update from GitHub Releases (SHA256-verified, `.bak` backup), file logging to `%APPDATA%\WinAudioBooster\log.txt`.
-
-**Requirements:** Windows 10/11 x64. **VB-Audio CABLE** is required and is offered for installation right from the app.
-
-**Install:** download the single-file `WinAudioBooster.exe` from [Releases](https://github.com/Xydik1otto/WinAudioBooster/releases), or build from source:
-
-```bash
-dotnet publish WinAudioBooster/WinAudioBooster.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
-```
-
-**Troubleshooting:** no sound after enabling the booster → check the selected physical output device and restart the booster; "cable not found" → install VB-Cable (offered in-app) and reboot. DSP chain: gain → 10-band EQ → boost shelves → widening → crossfeed → balance/mono → compressor → loudness AGC → limiter. Settings live in `%APPDATA%\WinAudioBooster\` — delete that folder to reset; logs are in `log.txt` there.
-
-Licensed under the [MIT License](LICENSE).
+The project is distributed under the [MIT](LICENSE) license.

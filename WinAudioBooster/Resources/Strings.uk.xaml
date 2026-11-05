@@ -7,34 +7,37 @@
     <sys:String x:Key="EnableBooster_Label">Увімкнути бустер</sys:String>
     <sys:String x:Key="BoosterState_On">УВІМКНЕНО</sys:String>
     <sys:String x:Key="BoosterState_Off">ВИМКНЕНО</sys:String>
+    <sys:String x:Key="Mini_Volume">Гучність</sys:String>
+    <sys:String x:Key="Mini_Settings">Налаштування</sys:String>
     <sys:String x:Key="AutoStart_Label">Автозапуск разом із Windows</sys:String>
 
     <!-- Перемикання дефолтного пристрою -->
     <sys:String x:Key="Routing_Group">Маршрутизація звуку Windows</sys:String>
-    <sys:String x:Key="SetCableDefault_Btn">Зробити CABLE дефолтним (Для бустера)</sys:String>
-    <sys:String x:Key="SetSpeakersDefault_Btn">Повернути динаміки (Прямий звук)</sys:String>
+    <sys:String x:Key="SetCableDefault_Btn">CABLE за замовчуванням</sys:String>
+    <sys:String x:Key="SetSpeakersDefault_Btn">Динаміки за замовчуванням</sys:String>
 
     <sys:String x:Key="OutputDevice_Group">Фізичні динаміки / Навушники</sys:String>
-    <sys:String x:Key="OutputDevice_Label">Виводити звук на:</sys:String>
+    <sys:String x:Key="OutputDevice_Label">Вивід звуку:</sys:String>
 
     <sys:String x:Key="Presets_Group">Пресети</sys:String>
     <sys:String x:Key="Preset_SaveAs">Зберегти новий</sys:String>
     <sys:String x:Key="Preset_Update">Оновити</sys:String>
+    <sys:String x:Key="Preset_Rename">Перейменувати</sys:String>
     <sys:String x:Key="Preset_PromptName">Введіть назву для нового пресету:</sys:String>
     <sys:String x:Key="Preset_Delete">Видалити</sys:String>
 
-    <sys:String x:Key="Gain_Label">Підсилення (Gain), dB</sys:String>
+    <sys:String x:Key="Gain_Label">Підсилення, dB</sys:String>
     <sys:String x:Key="HighGainWarning_Text">Високий рівень підсилення може пошкодити динаміки/навушники та слух.</sys:String>
     <sys:String x:Key="Language_Label">Мова / Language</sys:String>
     <sys:String x:Key="Language_Ukrainian">Українська</sys:String>
     <sys:String x:Key="Language_English">English</sys:String>
 
     <sys:String x:Key="Compressor_Group">Компресор</sys:String>
-    <sys:String x:Key="Threshold_Label">Поріг (Threshold), dB</sys:String>
-    <sys:String x:Key="Ratio_Label">Співвідношення (Ratio)</sys:String>
+    <sys:String x:Key="Threshold_Label">Поріг, dB</sys:String>
+    <sys:String x:Key="Ratio_Label">Співвідношення</sys:String>
 
     <sys:String x:Key="Limiter_Group">Лімітер</sys:String>
-    <sys:String x:Key="Ceiling_Label">Стеля (Ceiling), dB</sys:String>
+    <sys:String x:Key="Ceiling_Label">Стеля, dB</sys:String>
 
     <sys:String x:Key="Eq_Group">Еквалайзер</sys:String>
     <sys:String x:Key="Eq_Enable">Увімкнути еквалайзер</sys:String>
@@ -54,9 +57,9 @@
     <sys:String x:Key="CableInstalled_Btn">Драйвер встановлено</sys:String>
 
     <!-- Захист слуху -->
-    <sys:String x:Key="HearingProtection_Label">Захист слуху (попередження при підсиленні &gt;150%)</sys:String>
+    <sys:String x:Key="HearingProtection_Label">Захист слуху</sys:String>
     <sys:String x:Key="HearingProtection_Title">Захист слуху</sys:String>
-    <sys:String x:Key="HearingProtection_Message">Рівень підсилення більше 150% може призвести до незворотного пошкодження слуху.&#10;&#10;«Так» — продовжити на цьому рівні,&#10;«Ні» — зменшити до 150%.</sys:String>
+    <sys:String x:Key="HearingProtection_Message">Підсилення понад 150% може призвести до незворотного пошкодження слуху.&#10;&#10;«Так» — продовжити на цьому рівні,&#10;«Ні» — зменшити до 150%.</sys:String>
 
     <!-- Профілі пристроїв -->
     <sys:String x:Key="DeviceProfiles_Group">Профілі пристроїв</sys:String>
@@ -67,8 +70,20 @@
     <!-- Авто-тема за Windows -->
     <sys:String x:Key="Theme_Auto">Авто (Windows)</sys:String>
 
+    <!-- Користувацькі колірні гами -->
+    <sys:String x:Key="CreateTheme_Btn">Створити з поточної…</sys:String>
+    <sys:String x:Key="DeleteTheme_Btn">Видалити тему</sys:String>
+    <sys:String x:Key="CustomTheme_NameTitle">Нова користувацька тема</sys:String>
+    <sys:String x:Key="CustomTheme_NameLabel">Назва теми:</sys:String>
+    <sys:String x:Key="CustomTheme_Ok">ОК</sys:String>
+    <sys:String x:Key="CustomTheme_Cancel">Скасувати</sys:String>
+    <sys:String x:Key="CustomTheme_EmptyName">Вкажіть непорожню назву теми.</sys:String>
+    <sys:String x:Key="CustomTheme_DuplicateName">Тема з такою назвою вже існує.</sys:String>
+    <sys:String x:Key="CustomTheme_DeleteBuiltin">Вбудовані теми видаляти не можна.</sys:String>
+    <sys:String x:Key="CustomTheme_DeleteConfirm">Видалити користувацьку тему «{0}»?</sys:String>
+
     <!-- Додаткові фіксовані глобальні хоткеї -->
-    <sys:String x:Key="Hotkeys_ExtraInfo">Гарячі клавіші: Ctrl+Alt+1…5 — застосувати пресет 1–5, Ctrl+Alt+D — bypass DSP (увімк/вимк бустер).</sys:String>
+    <sys:String x:Key="Hotkeys_ExtraInfo">Гарячі клавіші: Ctrl+Alt+1…5 — пресети 1–5, Ctrl+Alt+D — bypass DSP.</sys:String>
 
     <!-- Таймер сну -->
     <sys:String x:Key="SleepTimer_Label">Таймер сну</sys:String>
@@ -80,18 +95,18 @@
     <!-- Швидкі DSP-тоггли (секція Еквалайзер) -->
     <sys:String x:Key="BassBoost_Label">Bass Boost</sys:String>
     <sys:String x:Key="TrebleBoost_Label">Treble Boost</sys:String>
-    <sys:String x:Key="SubBassFilter_Label">Cut sub-bass (30 Гц)</sys:String>
+    <sys:String x:Key="SubBassFilter_Label">Фільтр суб-басу (30 Гц)</sys:String>
 
     <!-- Просторові DSP-тоггли та баланс (секція Еквалайзер) -->
-    <sys:String x:Key="Loudness_Label">Loudness normalization</sys:String>
-    <sys:String x:Key="StereoWidth_Label">Stereo width</sys:String>
+    <sys:String x:Key="Loudness_Label">Нормалізація гучності</sys:String>
+    <sys:String x:Key="StereoWidth_Label">Ширина стерео</sys:String>
     <sys:String x:Key="Crossfeed_Label">Crossfeed (навушники)</sys:String>
     <sys:String x:Key="Mono_Label">Mono</sys:String>
     <sys:String x:Key="Balance_Label">Баланс L/R (0 — центр)</sys:String>
 
     <!-- Журнал подій (налаштування) -->
-    <sys:String x:Key="Logging_Label">Вести журнал подій (лог)</sys:String>
-    <sys:String x:Key="OpenLog_Btn">📄 Відкрити лог</sys:String>
+    <sys:String x:Key="Logging_Label">Вести журнал подій</sys:String>
+    <sys:String x:Key="OpenLog_Btn">Відкрити лог</sys:String>
 
     <!-- Нічний режим за розкладом (Quiet Hours) -->
     <sys:String x:Key="QuietHours_Label">Нічний режим за розкладом (пресет «Night Mode»)</sys:String>
@@ -103,4 +118,32 @@
     <sys:String x:Key="OSD_BypassOn">Bypass: On</sys:String>
     <sys:String x:Key="OSD_BypassOff">Bypass: Off</sys:String>
     <sys:String x:Key="OSD_Volume">Гучність: {0:F0}%</sys:String>
+
+    <!-- Гучність -->
+    <sys:String x:Key="Volume_Group">Загальна гучність</sys:String>
+    <sys:String x:Key="GainLevel_Text">Рівень підсилення</sys:String>
+
+    <!-- Системні налаштування -->
+    <sys:String x:Key="SystemSettings_Group">Системні налаштування</sys:String>
+    <sys:String x:Key="GlobalHotkey_Label">Глобальна клавіша бустера</sys:String>
+    <sys:String x:Key="Change_Btn">Змінити</sys:String>
+    <sys:String x:Key="Theme_Label">Тема оформлення</sys:String>
+    <sys:String x:Key="CheckUpdates_Btn">Перевірити оновлення</sys:String>
+
+    <!-- Мікшер програм -->
+    <sys:String x:Key="AppMixer_Btn">Мікшер програм</sys:String>
+    <sys:String x:Key="AppMixer_Title">Мікшер гучності програм (Boost до 300%)</sys:String>
+    <sys:String x:Key="Close_Btn">Закрити</sys:String>
+    <sys:String x:Key="RefreshProcesses_Btn">Оновити список</sys:String>
+
+    <!-- Правила автовизначення програм -->
+    <sys:String x:Key="AppRules_Btn">Правила програм</sys:String>
+    <sys:String x:Key="AppRules_Title">Правила автовизначення програм</sys:String>
+    <sys:String x:Key="Rules_Group">Правило для програми</sys:String>
+    <sys:String x:Key="Process_Label">Програма / Процес:</sys:String>
+    <sys:String x:Key="AutoPreset_Label">Авто-пресет:</sys:String>
+    <sys:String x:Key="CustomBoost_Label">Власний Boost:</sys:String>
+    <sys:String x:Key="SaveRule_Btn">Зберегти правило</sys:String>
+    <sys:String x:Key="DeleteRule_Btn">Видалити</sys:String>
+    <sys:String x:Key="RulesDescription_Text">Під час запуску програми автоматично застосовується вказана гучність (до 300%) та пресет.</sys:String>
 </ResourceDictionary>

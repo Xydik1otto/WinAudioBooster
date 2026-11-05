@@ -1,30 +1,30 @@
 <!--
-Дякуємо за PR! Оберіть релевантні пункти та видаліть непотрібні.
+Thank you for the PR! Keep the relevant items and remove the ones that do not apply.
 -->
 
-## Опис
+## Description
 
-<!-- Коротко: що змінено і навіщо. Посилайтеся на Issue, якщо є (`Fixes #123`). -->
+<!-- Briefly: what changed and why. Reference the Issue if there is one (`Fixes #123`). -->
 
-## Тип змін
+## Type of change
 
-- [ ] 🐛 Виправлення бага (non-breaking)
-- [ ] ✨ Нова функція (non-breaking)
-- [ ] 💥 Зміна, що ламає сумісність
-- [ ] 📝 Документація
-- [ ] 🔧 Інфраструктура / CI / збірка
+- [ ] Bug fix (non-breaking)
+- [ ] New feature (non-breaking)
+- [ ] Breaking change
+- [ ] Documentation
+- [ ] Infrastructure / CI / build
 
-## Як перевірено
+## How it was tested
 
-<!-- `dotnet build`, `dotnet test`, сценарій ручної перевірки на якому обладнанні/версії Windows. -->
+<!-- `dotnet build`, `dotnet test`, a manual verification scenario on which hardware/Windows version. -->
 
-- [ ] `dotnet build WinAudioBooster/WinAudioBooster.csproj` — успішно
-- [ ] `dotnet test WinAudioBooster.Tests/WinAudioBooster.Tests.csproj` — успішно
-- [ ] Перевірено вручну (Windows <версія>)
+- [ ] `dotnet build WinAudioBooster/WinAudioBooster.csproj` — passes
+- [ ] `dotnet test WinAudioBooster.Tests/WinAudioBooster.Tests.csproj` — passes
+- [ ] Verified manually (Windows <version>)
 
-## Чекліст
+## Checklist
 
-- [ ] Зміни не торкаються несуміжного коду
-- [ ] Коментарі в коді українською (ідентифікатори — англійською)
-- [ ] Нові залежності обґрунтовані
-- [ ] Документація (README/ARCHITECTURE) оновлена за потреби
+- [ ] The changes do not touch unrelated code
+- [ ] Code comments are in Ukrainian (identifiers in English)
+- [ ] New dependencies are justified
+- [ ] Documentation (README/ARCHITECTURE) updated where needed

@@ -1,83 +1,63 @@
-<!--
-Keywords/Topics (пропозиція для налаштування репозиторію: About → ⚙️ → Topics):
-equalizer, audio, volume-booster, wpf, dotnet, windows, naudio
-Додатково можна розглянути: audio-dsp, sound-enhancer, wasapi, vb-audio-cable, csharp
--->
+# Contributing
 
-# Contributing /Як долучитися
+Thank you for your interest in **WinAudioBooster**. This document describes how to build the project, which code style rules apply in the repository, and how to submit a pull request.
 
-Дякуємо за інтерес до **WinAudioBooster**! 🎚️ Цей документ описує, як зібрати проект, які правила оформлення коду діють у репозиторії та як надіслати pull request.
+## Building the project
 
-*(English summary at the bottom.)*
-
-## 🛠️ Як зібрати проект
-
-Потрібен **.NET 8 SDK** (версія фіксується у `global.json`).
+The **.NET 8 SDK** is required (the version is pinned in `global.json`).
 
 ```bash
-# клонування
+# clone
 git clone https://github.com/Xydik1otto/WinAudioBooster.git
 cd WinAudioBooster
 
-# відновлення залежностей і збірка
+# restore dependencies and build
 dotnet restore WinAudioBooster/WinAudioBooster.csproj
 dotnet build WinAudioBooster/WinAudioBooster.csproj --configuration Release
 
-# запуск тестів
+# run tests
 dotnet test WinAudioBooster.Tests/WinAudioBooster.Tests.csproj --configuration Release
 ```
 
-Single-file публікація (те саме, що робить CI для релізів):
+Single-file publish (the same command CI uses for releases):
 
 ```bash
 dotnet publish WinAudioBooster/WinAudioBooster.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 ```
 
-Готовий exe: `WinAudioBooster/bin/Release/net8.0-windows/win-x64/publish/WinAudioBooster.exe`.
+The resulting exe: `WinAudioBooster/bin/Release/net8.0-windows/win-x64/publish/WinAudioBooster.exe`.
 
-Для локального запуску знадобиться **VB-Audio CABLE** — додаток сам запропонує його встановити при першому старті.
+For local runs you will need **VB-Audio CABLE** — the application offers to install it on first start.
 
-## 🎨 Стиль коду
+## Code style
 
-- Мова інтерфейсу та **коментарі в коді — українська** (ідентифікатори — англійською).
-- Дотримуйтесь стандартних конвенцій C# (.editorconfig / форматування за замовчуванням Visual Studio).
-- Логіку DSP, роботи з WASAPI та перемиканням пристроїв змінюйте обережно й описуйте зміни в PR — це найчутливіша частина коду.
-- Не додавайте нові залежності без вагомої причини; якщо додаєте — поясніть чому.
-- Тестову папку `WinAudioBooster.Tests\` та основний проект змінюйте лише в межах вашої задачі.
+- The interface language and **code comments are in Ukrainian** (identifiers are in English).
+- Follow standard C# conventions (.editorconfig / Visual Studio default formatting).
+- Change DSP logic, WASAPI handling, and device switching carefully and describe the changes in the PR — this is the most sensitive part of the code.
+- Do not add new dependencies without a good reason; if you add one, explain why.
+- Change the `WinAudioBooster.Tests\` test project and the main project only within the scope of your task.
 
-## 🔀 Процес Pull Request
+## Pull request process
 
-1. Створіть гілку від `main`: `feat/<назва>` або `fix/<назва>`.
-2. Якщо змінюєте поведінку — додайте/оновіть тести у `WinAudioBooster.Tests`.
-3. Переконайтеся, що `dotnet build` і `dotnet test` проходять локально (CI перевіряє це на кожен PR).
-4. Оформіть PR за шаблоном (`.github/PULL_REQUEST_TEMPLATE.md`): що змінено, навіщо, як перевірено.
-5. Не чіпайте файли релізів (`CHANGELOG.md` оновлюємо при релізі) — це робить мейнтейнер.
-6. Очікуйте на рев'ю; дрібні правки прошу вносити окремими комітами, історію перед мержем можна не сквошити.
+1. Create a branch from `main`: `feat/<name>` or `fix/<name>`.
+2. If you change behavior, add or update tests in `WinAudioBooster.Tests`.
+3. Make sure `dotnet build` and `dotnet test` pass locally (CI checks this on every PR).
+4. Fill in the PR template (`.github/PULL_REQUEST_TEMPLATE.md`): what changed, why, and how it was verified.
+5. Do not touch release files (`CHANGELOG.md` is updated at release time) — this is done by the maintainer.
+6. Wait for review; small fixes should be separate commits, and the history does not need to be squashed before merge.
 
-## 🐣 Ідеї для новачків (`good first issue`)
+## Good first issues
 
-Шукаєте, з чого почати? Ось типові задачі рівня «перший PR»:
+Looking for a place to start? Typical first-PR tasks:
 
-- 🎨 **Темі** — додати нову тему оформлення (див. існуючі Win11 Fluent / Arch / XP / StudioRack як зразок).
-- 🌐 **Локалізація** — додати нову мову інтерфейсу або покращити існуючі переклади UA/EN.
-- 🎚️ **Пресети** — додати вбудований пресет EQ/компресора або покращити збереження/імпорт власних пресетів.
-- 📝 **Документація** — уточнити README, троблшутинг, переклади.
-- 🐛 **Дрібні баги** — позначені в Issues міткою `good first issue`.
+- **Themes** — add a new UI theme (see the existing Win11 Fluent / Arch / XP / StudioRack themes as a reference).
+- **Localization** — add a new interface language or improve the existing UA/EN translations.
+- **Presets** — add a built-in EQ/compressor preset or improve saving/import of custom presets.
+- **Documentation** — refine the README, troubleshooting, translations.
+- **Small bugs** — labeled `good first issue` in Issues.
 
-Перед початком роботи залиште коментар у відповідному Issue, щоб не дублювати роботу.
+Before starting work, leave a comment on the corresponding Issue to avoid duplicating effort.
 
-## 💬 Питання
+## Questions
 
-Питання щодо використання — у Issues з міткою `question`; вразливості — дивіться [SECURITY.md](SECURITY.md) (не публікуйте їх у відкритих Issues).
-
----
-
-## English (Summary)
-
-**Building:** requires .NET 8 SDK — `dotnet restore` / `dotnet build` / `dotnet test WinAudioBooster.Tests/WinAudioBooster.Tests.csproj`. Single-file publish command is above.
-
-**Code style:** standard C# conventions; UI strings and **code comments are in Ukrainian** (identifiers in English). Be careful with the DSP/WASAPI/device-switching logic and describe changes in the PR.
-
-**PR process:** branch from `main` (`feat/...` or `fix/...`), keep builds green, fill in the PR template, wait for review. Avoid unrelated changes and new dependencies unless justified.
-
-**Good first issues:** new themes, localization (UA/EN and beyond), EQ/compressor presets, docs. Comment on the issue before starting.
+Usage questions go to Issues with the `question` label; for vulnerabilities see [SECURITY.md](SECURITY.md) (do not publish them in public Issues).

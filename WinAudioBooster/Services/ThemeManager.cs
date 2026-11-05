@@ -163,4 +163,115 @@ public static class ThemeManager
             }
         }
     }
+
+    // =====================================================================
+    //  Користувацькі колірні гами (CustomTheme)
+    // =====================================================================
+
+    // Мапа «пензель застосунку → поле CustomTheme» (порядок неважливий)
+    private static readonly (string BrushKey, string Field)[] CustomThemeBrushMap =
+    {
+        ("RazerBg", "Background"),
+        ("RazerCardBg", "Card"),
+        ("RazerCardHeaderBg", "CardHeader"),
+        ("RazerBorder", "Border"),
+        ("RazerBorderActive", "BorderActive"),
+        ("RazerTextMain", "TextMain"),
+        ("RazerTextMuted", "TextMuted"),
+        ("RazerGreen", "Accent")
+    };
+
+    // Резервні значення на випадок, якщо пензель відсутній у поточних ресурсах
+    private static readonly Dictionary<string, string> FallbackColors = new()
+    {
+        ["RazerBg"] = "#0D0E12",
+        ["RazerCardBg"] = "#15171E",
+        ["RazerCardHeaderBg"] = "#1E212B",
+        ["RazerBorder"] = "#2A2E3D",
+        ["RazerBorderActive"] = "#00FF66",
+        ["RazerTextMain"] = "#F8FAFC",
+        ["RazerTextMuted"] = "#94A3B8",
+        ["RazerGreen"] = "#00FF66"
+    };
+
+    /// <summary>
+    /// Читає поточні значення пензлів (після CopyBrushesIntoAppResources вони лежать
+    /// у корені Application.Current.Resources) і формує CustomTheme із заданою назвою.
+    /// </summary>
+    public static WinAudioBooster.Models.CustomTheme CreateCustomThemeFromCurrent(string name)
+    {
+        var theme = new WinAudioBooster.Models.CustomTheme { Name = name };
+        var appResources = Application.Current.Resources;
+
+        foreach (var (brushKey, field) in CustomThemeBrushMap)
+        {
+            string hex = FallbackColors[brushKey];
+
+            if (appResources[brushKey] is SolidColorBrush brush)
+            {
+                // #RRGGBB (альфа-канал опускаємо — гами непрозорі)
+                hex = brush.Color.ToString().ToUpperInvariant();
+                if (hex.Length == 9) hex = $"#{hex[3..]}";
+            }
+
+            typeof(WinAudioBooster.Models.CustomTheme)
+                .GetProperty(field)!
+                .SetValue(theme, hex);
+        }
+
+        return theme;
+    }
+
+    /// <summary>
+    /// Застосовує користувацьку гаму: перевизначає ті самі пензлі в корені
+    /// Application.Current.Resources (патерн CopyBrushesIntoAppResources —
+    /// інлайн-значення App.xaml мають вищий пріоритет за MergedDictionaries).
+    /// Невалідний hex або відсутній колір → пензель лишається від базового скіна.
+    /// Викликати ПІСЛЯ базового скіна (як LightOverlay).
+    /// </summary>
+    public static void ApplyCustomTheme(WinAudioBooster.Models.CustomTheme theme)
+    {
+        if (theme == null || !theme.HasAnyColor) return;
+
+        try
+        {
+            var appResources = Application.Current.Resources;
+
+            foreach (var (brushKey, field) in CustomThemeBrushMap)
+            {
+                string? hex = (string?)typeof(WinAudioBooster.Models.CustomTheme)
+                    .GetProperty(field)!
+                    .GetValue(theme);
+
+                if (string.IsNullOrWhiteSpace(hex)) continue;
+
+                try
+                {
+                    var color = (Color)ColorConverter.ConvertFromString(hex.Trim());
+                    appResources[brushKey] = new SolidColorBrush(color);
+                }
+                catch (FormatException)
+                {
+                    // Невалідний hex — пензель лишається від базового скіна
+                    Debug.WriteLine($"ThemeManager: некоректний колір «{hex}» для {brushKey} у темі «{theme.Name}»");
+                }
+            }
+
+            Debug.WriteLine($"ThemeManager: застосовано користувацьку тему «{theme.Name}»");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"ThemeManager: помилка застосування кастомної теми — {ex.Message}");
+        }
+    }
+
+    /// <summary>Чи є така назва користувацькою темою зі списку (null/порожні — ні).</summary>
+    public static WinAudioBooster.Models.CustomTheme? FindCustomTheme(
+        IEnumerable<WinAudioBooster.Models.CustomTheme>? customThemes, string? name)
+    {
+        if (customThemes == null || string.IsNullOrWhiteSpace(name)) return null;
+
+        return customThemes.FirstOrDefault(t =>
+            string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
 }

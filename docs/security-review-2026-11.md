@@ -1,54 +1,94 @@
-# Security-ревью WinAudioBooster — 2026-11
+# WinAudioBooster Security Review — 2026-11
 
-> **Оновлення 2026-11-05:** знаходження **#1, #2, #3 виправлені** після цього ревью
-> (commit `security fixes`): #1 → SHA256-перевірка оновлення тепер обов'язкова (fail-closed);
-> #2 → інсталятор приймає тільки власний завантажений zip у `%TEMP%` (пошук у батьківських
-> теках прибрано) + обов'язкова SHA256-перевірка архіву перед runas-запуском; #3 →
-> PowerShell-екранування `''` для device id + виправлено синтаксично ламаний блок у here-string.
-> Пункти НИЗЬКО (#4–#8) лишились як задокументовані ризики.
+> **Update 2026-11-05:** findings **#1, #2, #3 are fixed** after this review
+> (commit `security fixes`): #1 → the SHA256 check of the update is now mandatory
+> (fail-closed); #2 → the installer accepts only its own downloaded zip in `%TEMP%`
+> (the search of parent directories was removed) plus a mandatory SHA256 check of
+> the archive before the runas launch; #3 → PowerShell quoting `''` for the device
+> id plus a fix of the syntactically broken block in the here-string.
+> The LOW items (#4-#8) remain as documented risks.
 
-Ревью виконано статично (читання коду + git grep). Зона: `WinAudioBooster\WinAudioBooster\` (net8.0-windows, WPF, self-contained win-x64).
-Ревьюєр не змінював код. Усі рядки нижче — перевірені факти з файлів; там, де проблему не знайдено, це вказано явно.
+The review was performed statically (code reading + git grep). Scope:
+`WinAudioBooster\WinAudioBooster\` (net8.0-windows, WPF, self-contained win-x64).
+The reviewer did not change code. All statements below are verified facts from the
+files; where no problem was found, that is stated explicitly.
 
-## Підсумок
+## Summary
 
-| Серйозність | Кількість |
+| Severity | Count |
 |---|---|
-| КРИТИЧНО | 0 |
-| СЕРЕДНЬО | 3 |
-| НИЗЬКО | 5 |
+| CRITICAL | 0 |
+| MEDIUM | 3 |
+| LOW | 5 |
 
-Головні ризики — у ланцюжку постачання оновлень/драйвера: (1) автооновлення **fail-open** — без digest запускає неперевірений exe; (2) VB-Cable інсталятор виконує завантажений з інтернету zip-вміст **з підвищенням прав (runas) без жодної перевірки цілісності**; (3) ін'єкція в PowerShell-командний рядок у fallback перемикання пристрою.
+The main risks are in the update/driver supply chain: (1) auto-update is
+**fail-open** — without a digest it runs an unverified exe; (2) the VB-Cable
+installer executes the contents of a downloaded zip **with elevation (runas) and no
+integrity check at all**; (3) injection into the PowerShell command line in the
+device-switching fallback.
 
-## Таблиця знаходжень
+## Findings table
 
-| # | Серйозність | Файл:рядки | Проблема |
+| # | Severity | File:lines | Problem |
 |---|---|---|---|
-| 1 | СЕРЕДНЬО | `Services/UpdateService.cs:109,175–195,221` | **Fail-open перевірки SHA256 автооновлення.** Якщо GitHub не віддає `digest` (старі ассети або не-sha256 алгоритм — `ExtractSha256FromDigest` повертає порожній рядок, рядки 260–278), `DownloadAndInstallUpdateAsync` лише логує «перевірку пропущено» (рядок 194) і **все одно запускає завантажений exe** через бат-скрипт (рядок 221). Тобто у гілці «немає digest» виконуваний файл запускається взагалі без перевірки цілісності. Перевірка сама по собі є і коректна (рядки 177–191), але за дизайном вона опціональна (fail-open, а не fail-closed). |
-| 2 | СЕРЕДНЬО | `Services/VbCableInstaller.cs:34–46,56,65–70,96–124` | **Запуск стороннього інсталятора з правами адміністратора без перевірки цілісності.** (а) Завантажений zip (рядки 41–46) не проходить жодної перевірки — ні SHA256, ні перевірки Authenticode-підпису `VBCABLE_Setup*.exe`; далі він запускається з `Verb = "runas"` (рядки 65–70), тобто підвищення прав. Компрометація vb-audio.com/CDN або MITM на рівні вище TLS → адмін-RCE на машині користувача. (б) `FindValidZipArchiveByContent` (рядки 96–124) шукає локальний zip у `appDir` **та трьох батьківських теках** і використовує його без перевірки джерела; якщо застосунок портативно встановлений у теку, доступну користувачеві, будь-який локальний процес може підкласти zip з `VBCABLE_Setup*.exe` всередині — він отримає запуск з runas. (в) URL завантаження витягується regex'ом з HTML сайту (рядки 126–137) — хост обмежений `download.vb-audio.com`, але шлях/файл неконтрольований. |
-| 3 | СЕРЕДНЬО | `Utils/AudioDeviceSwitcher.cs:52–81,93–109` | **Ін'єкція в PowerShell командний рядок.** `SetDeviceViaPowerShellHost` підставляє `'{deviceId}'` у PowerShell-скрипт (рядок 75), який передається `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "…"` (рядок 81). Значення **неекрановане**: одиночна лапка в назві пристрою (реальні назви типу `John's Speakers`) ламає рядок, а `ResolveToDeviceId` (рядки 93–109) повертає довільний вхідний рядок як-is (рядки 95, 107), тому контрольоване значення (назва пристрою з налаштувань/пресетів) може завершити рядок і виконати довільний PowerShell-код від імені користувача. Побічно: `-ExecutionPolicy Bypass` + `Add-Type` — патерн, що тригерить AV/EDR і розширює наслідки ін'єкції. |
-| 4 | НИЗЬКО | `Services/UpdateService.cs:125–135,207–221` | **TOCTOU / передбачувані шляхи в %TEMP%.** Завантажений exe (`%TEMP%\WinAudioBooster\update\WinAudioBooster.exe`) і `update.bat` лежать у фіксованих, заздалегідь відомих шляхах. Між перевіркою SHA256 (рядки 180–190) і запуском бат-скрипта (221) файл може бути підмінений іншим процесом того ж користувача; сам бат-скрипт також перезаписується без ексклюзивного створення. %TEMP% користувача не доступний іншим користувачам, тому ризик обмежений same-user кодом, але перевірка і запуск не атомарні. |
-| 5 | НИЗЬКО | `MainWindow/MainWindow.Eq.cs:178` + `Utils/AutoEqImporter.cs:16–64` | **Відсутній ліміт розміру файлу перед читанням.** `File.ReadAllText(dialog.FileName)` (рядок 178) читає файл цілком без перевірки розміру; далі весь контент обробляється в пам'яті (`Substring`, `Split`, `List` точок). CSV-ін'єкції некритичні (парсер лише числа), але гігабайтний файл → зникнення пам'яті/фриз UI (DoS). Діалог вибору файлу — користувач сам, тому НИЗЬКО. |
-| 6 | НИЗЬКО | `Services/SettingsManager.cs:62` та `Utils/JsonHelper.cs:18` | **Без ліміту довжини при читанні JSON.** `File.ReadAllText` без обмеження розміру перед `JsonSerializer.Deserialize`. Десеріалізація сама безпечна (System.Text.Json у типізовані моделі, `PropertyNameCaseInsensitive`, без поліморфних `$type`-конвертерів — перевірено), ризик лише ресурсний: пошкоджений/підмінений локально settings/preset-файл великого розміру уповільнить старт/з'їсть пам'ять. |
-| 7 | НИЗЬКО | `Services/LoggingService.cs:16,58–61` | **Логування потенційної PII за замовчуванням.** Лог увімкнений за замовчуванням (`IsEnabled = true`, рядок 16); `WriteException` (рядки 58–61) пише повний stack trace у `%APPDATA%\WinAudioBooster\log.txt`, а деякі повідомлення містять URL завантаження (UpdateService, рядок 136). Шлях %APPDATA% розкриває ім'я користувача Windows; стек-трейси можуть містити шляхи до exe/профілю. Файл у профілі користувача, ротація є (2 МБ) — тому НИЗЬКО. |
-| 8 | НИЗЬКО | `VBCABLE_Driver_Pack45.zip` (у корені репозиторію та в `WinAudioBooster/WinAudioBooster/`) | **Бінарний сторонній архів закомічений у репозиторій двічі.** Це і роздуття репо, і supply-chain-гігієна: саме такий локальний zip (за #2б) підхоплюється інсталятором і запускається з адмін-правами без перевірки. Рекомендація: прибрати з репо, тримати поза git (LFS/завантаження при збірці з фіксованим SHA256). |
+| 1 | MEDIUM | `Services/UpdateService.cs:109,175–195,221` | **Fail-open SHA256 check of the auto-update.** If GitHub does not return a `digest` (older assets or a non-sha256 algorithm — `ExtractSha256FromDigest` returns an empty string, lines 260–278), `DownloadAndInstallUpdateAsync` only logs "check skipped" (line 194) and **still launches the downloaded exe** via a batch script (line 221). In other words, in the "no digest" branch the executable runs with no integrity check at all. The check itself is correct (lines 177–191), but by design it is optional (fail-open, not fail-closed). |
+| 2 | MEDIUM | `Services/VbCableInstaller.cs:34–46,56,65–70,96–124` | **Running a third-party installer with administrator rights without an integrity check.** (a) The downloaded zip (lines 41–46) undergoes no verification — neither SHA256 nor an Authenticode-signature check of `VBCABLE_Setup*.exe`; it is then launched with `Verb = "runas"` (lines 65–70), i.e. elevated. A compromise of vb-audio.com/CDN or a MITM above TLS → admin RCE on the user's machine. (b) `FindValidZipArchiveByContent` (lines 96–124) searches for a local zip in `appDir` **and three parent directories** and uses it without verifying its origin; if the application is installed portably into a user-writable directory, any local process can plant a zip with a `VBCABLE_Setup*.exe` inside — it gets the runas launch. (c) The download URL is extracted by regex from the site's HTML (lines 126–137) — the host is restricted to `download.vb-audio.com`, but the path/file is uncontrolled. |
+| 3 | MEDIUM | `Utils/AudioDeviceSwitcher.cs:52–81,93–109` | **Injection into the PowerShell command line.** `SetDeviceViaPowerShellHost` substitutes `'{deviceId}'` into a PowerShell script (line 75) that is passed to `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "…"` (line 81). The value is **not escaped**: a single quote in a device name (real names like `John's Speakers`) breaks the string, and `ResolveToDeviceId` (lines 93–109) returns arbitrary input as-is (lines 95, 107), so a controlled value (a device name from settings/presets) can terminate the string and execute arbitrary PowerShell code as the user. Incidentally: `-ExecutionPolicy Bypass` + `Add-Type` is a pattern that triggers AV/EDR and widens the injection impact. |
+| 4 | LOW | `Services/UpdateService.cs:125–135,207–221` | **TOCTOU / predictable paths in %TEMP%.** The downloaded exe (`%TEMP%\WinAudioBooster\update\WinAudioBooster.exe`) and `update.bat` sit at fixed, known-in-advance paths. Between the SHA256 check (lines 180–190) and the batch-script launch (221), the file can be swapped by another process of the same user; the batch script itself is also overwritten without exclusive creation. The user's %TEMP% is not accessible to other users, so the risk is limited to same-user code, but the check and launch are not atomic. |
+| 5 | LOW | `MainWindow/MainWindow.Eq.cs:178` + `Utils/AutoEqImporter.cs:16–64` | **No file-size limit before reading.** `File.ReadAllText(dialog.FileName)` (line 178) reads the whole file without a size check; the entire content is then processed in memory (`Substring`, `Split`, a `List` of points). CSV injection is not a concern (the parser only reads numbers), but a gigabyte-sized file leads to memory exhaustion / a UI freeze (DoS). The file comes from a user-driven picker, hence LOW. |
+| 6 | LOW | `Services/SettingsManager.cs:62` and `Utils/JsonHelper.cs:18` | **No length limit when reading JSON.** `File.ReadAllText` without a size limit before `JsonSerializer.Deserialize`. Deserialization itself is safe (System.Text.Json into typed models, `PropertyNameCaseInsensitive`, no polymorphic `$type` converters — verified); the risk is purely resource-related: a corrupted/tampered large local settings/preset file slows startup or consumes memory. |
+| 7 | LOW | `Services/LoggingService.cs:16,58–61` | **Logging of potential PII by default.** Logging is enabled by default (`IsEnabled = true`, line 16); `WriteException` (lines 58–61) writes full stack traces to `%APPDATA%\WinAudioBooster\log.txt`, and some messages contain download URLs (UpdateService, line 136). The %APPDATA% path reveals the Windows user name; stack traces may contain exe/profile paths. The file sits in the user profile and rotation exists (2 MB) — hence LOW. |
+| 8 | LOW | `VBCABLE_Driver_Pack45.zip` (in the repository root and in `WinAudioBooster/WinAudioBooster/`) | **A binary third-party archive committed to the repository twice.** This both bloats the repo and is a supply-chain hygiene issue: precisely such a local zip (per #2b) is picked up by the installer and launched with admin rights without verification. Recommendation: remove it from the repo, keep it outside git (LFS/download at build time with a pinned SHA256). |
 
-## Що перевірено і проблеми НЕ знайдено (підтверджено)
+## Verified clean (confirmed no issues)
 
-- **Секрети:** `git grep -inE 'api[_-]?key|secret|password|token|credential'` по `*.cs/*.xaml/*.json/*.ini/*.csproj` — збіги лише false positives (`CancellationToken`, `tokens` у CSV-парсері). **Секретів не знайдено.**
-- **TLS-політики:** по всьому коду **немає** жодного `ServerCertificateCustomValidationCallback`, `ServicePointManager`, `DangerousAcceptAnyServerCertificate` — валідація TLS дефолтна, усі URL hardcoded HTTPS (`UpdateService.cs:12`, `VbCableInstaller.cs:10–11`).
-- **Zip Slip:** `ZipFile.ExtractToDirectory(targetZipPath, extractPath)` (`VbCableInstaller.cs:56`) у .NET 8 має **вбудований захист**: записи з `..`/абсолютними шляхами кидають виняток і не виходять за destination. Проблеми не знайдено (але не покладайтеся лише на це при майбутніх змінах — власна перевірка шляхів не зайва).
-- **Бат-заміна exe — cmd-ін'єкція:** `BuildUpdateBatchScript` (`UpdateService.cs:232–257`) підставляє тільки `Environment.ProcessPath`, фіксований temp-шлях з константним ім'ям файлу і temp-теку — **жодного користувацького вводу**; шляхи у лапках. Ін'єкції не знайдено. (Path traversal також не застосовний: джерела шляхів не керовані зовні.)
-- **JSON-десеріалізація:** System.Text.Json у типізовані класи без кастомних конвертерів — безпечна за замовчуванням; єдине зауваження — ліміт довжини (знаходження #6).
-- **Win32 P/Invoke:** `HotkeyManager.cs:12–16` — `RegisterHotKey`/`UnregisterHotKey` з примітивами (`uint`, `int`, `IntPtr`), **буферів і маршалінгу складних структур немає**, хук `HwndHook` перевіряє id проти зареєстрованих. COM-оголошення в `AudioDeviceSwitcher.cs:121–143` (PolicyConfig) коректні з `[PreserveSig]`/`LPWStr`. Проблем не знайдено.
-- **AutoStart:** `Services/AutoStartService.cs` — HKCU `...\CurrentVersion\Run`, шлях exe у лапках (рядок 34). Чисто.
+- **Secrets:** `git grep -inE 'api[_-]?key|secret|password|token|credential'` across
+  `*.cs/*.xaml/*.json/*.ini/*.csproj` — only false-positive matches
+  (`CancellationToken`, `tokens` in the CSV parser). **No secrets found.**
+- **TLS policies:** nowhere in the code is there a single
+  `ServerCertificateCustomValidationCallback`, `ServicePointManager`,
+  `DangerousAcceptAnyServerCertificate` — TLS validation is default, and all URLs
+  are hardcoded HTTPS (`UpdateService.cs:12`, `VbCableInstaller.cs:10–11`).
+- **Zip Slip:** `ZipFile.ExtractToDirectory(targetZipPath, extractPath)`
+  (`VbCableInstaller.cs:56`) in .NET 8 has **built-in protection**: entries with
+  `..`/absolute paths throw and do not escape the destination. No problem found
+  (but do not rely on this alone in future changes — an explicit path check is
+  still worthwhile).
+- **Batch replacement exe — cmd injection:** `BuildUpdateBatchScript`
+  (`UpdateService.cs:232–257`) substitutes only `Environment.ProcessPath`, a fixed
+  temp path with a constant file name, and the temp directory — **no user input**;
+  paths are quoted. No injection found. (Path traversal also does not apply: the
+  path sources are not externally controlled.)
+- **JSON deserialization:** System.Text.Json into typed classes without custom
+  converters — safe by default; the only remark is the length limit (finding #6).
+- **Win32 P/Invoke:** `HotkeyManager.cs:12–16` — `RegisterHotKey`/`UnregisterHotKey`
+  with primitives (`uint`, `int`, `IntPtr`), **no buffers or marshaling of complex
+  structures**; the `HwndHook` hook checks ids against registered ones. The COM
+  declarations in `AudioDeviceSwitcher.cs:121–143` (PolicyConfig) are correct with
+  `[PreserveSig]`/`LPWStr`. No problems found.
+- **AutoStart:** `Services/AutoStartService.cs` — HKCU
+  `...\CurrentVersion\Run`, the exe path is quoted (line 34). Clean.
 
-## Рекомендації за пріоритетом
+## Recommendations by priority
 
-1. **(Знаходження #2)** Додати перевірку цілісності у `VbCableInstaller`: фіксований SHA256 поточного `VBCABLE_Driver_Pack45.zip` у коді (або перевірка Authenticode-підпису видавця VB-Audio на `VBCABLE_Setup*.exe` перед запуском) і fail-closed; звузити `FindValidZipArchiveByContent` до теки застосунку/конкретного файлу.
-2. **(Знаходження #1)** Зробити перевірку SHA256 в `UpdateService` fail-closed: якщо `expectedSha256` порожній — скасовувати оновлення (або використовувати fallback-канал дайджеста, напр. sidecar `SHA256SUMS` у релізі), а не запускати неперевірений exe.
-3. **(Знаходження #3)** Екранувати `deviceId` у `AudioDeviceSwitcher.SetDeviceViaPowerShellHost` (подвоювати `'` → `''`) або передавати аргумент безпечно (`-Command` з `-EncodedCommand`/base64, або бінарний параметр через `ArgumentList`). Заразом виправити пошкоджену гілку `opacity {{ … }}` (рядок 70) — скрипт у поточному вигляді синтаксично ламаний.
-4. **(Знаходження #4)** Створювати temp-теку оновлення з випадковим ім'ям (`Path.GetRandomFileName()`) і відкривати файл-ціль з `FileOptions.DeleteOnClose`/ексклюзивним доступом.
-5. **(Знаходження #5, #6)** Обмежити розмір файлів перед читанням (AutoEq — напр. 5 МБ; settings/presets — напр. 1 МБ) з явною помилкою користувачу.
-6. **(Знаходження #7)** Вимкнути логування за замовчуванням або маскувати шляхи профілю (`C:\Users\<name>` → `%USERPROFILE%`) і не писати повні stack trace'і у реліз-білдах.
-7. **(Знаходження #8)** Видалити `VBCABLE_Driver_Pack45.zip` з репозиторію (обидві копії).
+1. **(Finding #2)** Add an integrity check to `VbCableInstaller`: a pinned SHA256 of
+   the current `VBCABLE_Driver_Pack45.zip` in code (or an Authenticode-signature
+   check of the VB-Audio publisher on `VBCABLE_Setup*.exe` before launch), fail-closed;
+   narrow `FindValidZipArchiveByContent` to the application directory/a specific file.
+2. **(Finding #1)** Make the SHA256 check in `UpdateService` fail-closed: if
+   `expectedSha256` is empty, cancel the update (or use a fallback digest channel,
+   e.g. a sidecar `SHA256SUMS` in the release) instead of running an unverified exe.
+3. **(Finding #3)** Escape `deviceId` in `AudioDeviceSwitcher.SetDeviceViaPowerShellHost`
+   (double `'` → `''`) or pass the argument safely (`-Command` with
+   `-EncodedCommand`/base64, or a binary parameter via `ArgumentList`). Also fix the
+   broken `opacity {{ … }}` branch (line 70) — the script is syntactically broken as
+   it stands.
+4. **(Finding #4)** Create the update temp directory with a random name
+   (`Path.GetRandomFileName()`) and open the target file with
+   `FileOptions.DeleteOnClose`/exclusive access.
+5. **(Findings #5, #6)** Limit file sizes before reading (AutoEq — e.g. 5 MB;
+   settings/presets — e.g. 1 MB) with an explicit error to the user.
+6. **(Finding #7)** Disable logging by default or mask profile paths
+   (`C:\Users\<name>` → `%USERPROFILE%`) and do not write full stack traces in
+   release builds.
+7. **(Finding #8)** Remove `VBCABLE_Driver_Pack45.zip` from the repository (both copies).

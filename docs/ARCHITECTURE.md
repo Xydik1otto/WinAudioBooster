@@ -1,191 +1,191 @@
-# Архітектура WinAudioBooster
+# WinAudioBooster Architecture
 
-Технічний опис внутрішнього устрою проекту. Користувацька документація — [README.md](../README.md).
+Technical description of the project internals. User-facing documentation is in [README.md](../README.md).
 
-## Загальна картина
+## Overview
 
-WinAudioBooster — WPF-додаток (.NET 8, C#) на бібліотеках **NAudio** (обробка аудіо) та **AudioSwitcher.AudioApi.CoreAudio** (керування пристроями CoreAudio). Додаток «перехоплює» системний звук через віртуальний аудіо-кабель, обробляє його DSP-ланцюгом і виводить на фізичний пристрій.
+WinAudioBooster is a WPF application (.NET 8, C#) built on **NAudio** (audio processing) and **AudioSwitcher.AudioApi.CoreAudio** (CoreAudio device control). The application intercepts system audio through a virtual audio cable, processes it with a DSP chain, and plays it back on the physical device.
 
-## Потік аудіо
+## Audio flow
 
 ```
  ┌─────────────────────┐
- │  Додатки Windows     │  (браузер, ігри, плеєр...)
- │  (системний мікшер)  │
+ │  Windows apps        │  (browser, games, player...)
+ │  (system mixer)      │
  └──────────┬──────────┘
-            │  Windows перемикає default output
+            │  Windows switches the default output
             ▼
  ┌─────────────────────┐
- │  VB-Audio CABLE      │  віртуальний пристрій «CABLE Input»
+ │  VB-Audio CABLE      │  virtual device "CABLE Input"
  │  (default output)    │
  └──────────┬──────────┘
             │  WASAPI loopback capture (WasapiLoopbackCapture)
             ▼
  ┌─────────────────────┐
- │  BufferedWaveProvider│  буфер ~2 с, DiscardOnBufferOverflow
+ │  BufferedWaveProvider│  buffer ~2 s, DiscardOnBufferOverflow
  └──────────┬──────────┘
             ▼
  ┌─────────────────────┐
- │  DspProcessor        │  ISampleProvider, обробка по семплах:
- │  1. Gain (до +300%)  │     gain → EQ 10 смуг → boost shelves →
- │  2. EQ 10 смуг       │     widen (M/S) → crossfeed →
- │  3. Boost shelves    │     balance/mono → компресор →
+ │  DspProcessor        │  ISampleProvider, per-sample processing:
+ │  1. Gain (to +300%)  │     gain → 10-band EQ → boost shelves →
+ │  2. 10-band EQ       │     widen (M/S) → crossfeed →
+ │  3. Boost shelves    │     balance/mono → compressor →
  │  4. Stereo widening  │     loudness AGC (RMS) →
- │  5. Crossfeed        │     м'який лімітер (ceiling)
- │  6. Balance / Mono   │     LevelMeter: вхідний/вихідний рівні,
- │  7. Компресор        │     FFT-спектр для візуалізатора
+ │  5. Crossfeed        │     soft limiter (ceiling)
+ │  6. Balance / Mono   │     LevelMeter: input/output levels,
+ │  7. Compressor       │     FFT spectrum for the visualizer
  │  8. Loudness AGC     │
- │  9. М'який лімітер   │
+ │  9. Soft limiter     │
  └──────────┬──────────┘
-            │  ресемплінг під формат пристрою
+            │  resampling to the device format
             ▼
  ┌─────────────────────┐
- │  MediaFoundation     │  (якщо формат != MixFormat пристрою;
- │  Resampler           │   інакше прямий SampleToWaveProvider16)
- └──────────┬──────────┘
-            ▼
- ┌─────────────────────┐
- │  WasapiOut (Shared)  │  вивід на фізичний пристрій
+ │  MediaFoundation     │  (if format != the device MixFormat;
+ │  Resampler           │   otherwise direct SampleToWaveProvider16)
  └──────────┬──────────┘
             ▼
  ┌─────────────────────┐
- │  Динаміки / навушники│
+ │  WasapiOut (Shared)  │  output to the physical device
+ └──────────┬──────────┘
+            ▼
+ ┌─────────────────────┐
+ │  Speakers / headphones│
  └─────────────────────┘
 ```
 
-Компоненти ланцюга (клас `Audio.AudioEngine`):
+Chain components (the `Audio.AudioEngine` class):
 
-1. **Автоперемикання** — `Utils.AudioDeviceSwitcher` через COM-інтерфейс `IPolicyConfig` призначає «CABLE Input» пристроєм за замовчуванням для ролей Console/Multimedia/Communications. При зупинці повертає попередній пристрій.
-2. **Захоплення** — `WasapiLoopbackCapture(captureCableDevice)` знімає loopback-потік із віртуального кабелю.
-3. **Буферизація** — `BufferedWaveProvider` згладжує нерівномірність надходження даних (буфер 2 секунди, при переповненні старі дані відкидаються).
-4. **DSP** — `Audio.DspProcessor` реалізує `ISampleProvider` і прогоняє кожен семпл через ланцюг: підсилення (gain, до 300% → понад 0 дБFS), еквалайзер, boost shelves (Bass/Treble Boost), stereo widening (M/S-розширення панорами), crossfeed (затримка/змішування протилежного каналу для навушників), balance/mono, динамічний компресор (порог/співвідношення/атака/відновлення), loudness normalization (RMS AGC — утримує цільовий рівень) та м'який лімітер (обмежує піки на заданій стелі, за замовчуванням −0.3 дБ). Вбудовані `LevelMeter` віддають рівні для індикаторів UI, а FFT-спектр — для спектр-візуалізатора (з історією піків).
-5. **Вивід** — якщо формат після DSP не збігається з `MixFormat` фізичного пристрою, працює `MediaFoundationResampler`; далі `WasapiOut` у shared-режимі відтворює звук.
+1. **Auto switching** — `Utils.AudioDeviceSwitcher` assigns "CABLE Input" as the default device for the Console/Multimedia/Communications roles through the COM interface `IPolicyConfig`. On stop it restores the previous device.
+2. **Capture** — `WasapiLoopbackCapture(captureCableDevice)` takes the loopback stream from the virtual cable.
+3. **Buffering** — `BufferedWaveProvider` smooths uneven data arrival (a 2-second buffer; on overflow, older data is discarded).
+4. **DSP** — `Audio.DspProcessor` implements `ISampleProvider` and runs every sample through the chain: gain (up to 300%, i.e. above 0 dBFS), equalizer, boost shelves (Bass/Treble Boost), stereo widening (M/S image widening), crossfeed (delay/mixing of the opposite channel for headphones), balance/mono, a dynamic compressor (threshold/ratio/attack/release), loudness normalization (RMS AGC — holds a target level), and a soft limiter (limits peaks to a set ceiling, -0.3 dB by default). Built-in `LevelMeter` instances provide levels for the UI indicators, and the FFT spectrum feeds the spectrum visualizer (with peak history).
+5. **Output** — if the format after DSP does not match the physical device's `MixFormat`, `MediaFoundationResampler` runs; then `WasapiOut` in shared mode plays the audio.
 
-## Шари
+## Layers
 
-| Шар / папка | Відповідальність |
+| Layer / folder | Responsibility |
 |---|---|
-| `Audio/` | Аудіо-ядро: рушій, DSP, керування пристроями, вимірювання рівнів |
-| `Services/` | Служби застосунку: налаштування, пресети, теми, трей, хоткеї, автозапуск, інсталятор VB-Cable, перевірка/завантаження оновлень, файл-лог, детектор/мікшер додатків |
-| `Models/` | POCO-моделі даних: `AppSettings`, `Preset`, `ProcessRule`, `AppVolumeRule`, `DevicePresetBinding`, `AppSessionInfo` |
-| `Utils/` | Допоміжні утиліти: перемикач пристроїв (COM), JSON, культура/мова |
-| `Converters/` | WPF-конвертери для UI (колір/видимість за рівнем gain) |
-| `MainWindow/` | Головне вікно — **partial-клас**, розбитий за функціями |
-| `Themes/Skins/` | XAML-ресурсні словники тем оформлення |
-| `Resources/` | Локалізація (ResourceDictionary `Strings.uk.xaml`, `Strings.en.xaml`) |
-| `Deployment/` | Інсталятор (Inno Setup `.iss`) та скрипт видалення |
+| `Audio/` | Audio core: engine, DSP, device control, level metering |
+| `Services/` | Application services: settings, presets, themes, tray, hotkeys, autostart, the VB-Cable installer, update check/download, file logging, app detector/mixer |
+| `Models/` | POCO data models: `AppSettings`, `Preset`, `ProcessRule`, `AppVolumeRule`, `DevicePresetBinding`, `AppSessionInfo` |
+| `Utils/` | Helper utilities: device switcher (COM), JSON, culture/language |
+| `Converters/` | WPF converters for the UI (color/visibility based on gain level) |
+| `MainWindow/` | Main window — a **partial class** split by function |
+| `Themes/Skins/` | XAML resource dictionaries for UI themes |
+| `Resources/` | Localization (ResourceDictionary `Strings.uk.xaml`, `Strings.en.xaml`) |
+| `Deployment/` | Installer (Inno Setup `.iss`) and uninstall script |
 
-### MainWindow як partial-клас
+### MainWindow as a partial class
 
-Головне вікно свідомо розбите на частини за доменами, щоб не тримати тисячі рядків в одному файлі:
+The main window is deliberately split into parts by domain so that thousands of lines are not kept in a single file:
 
-| Файл | Зона відповідальності |
+| File | Area of responsibility |
 |---|---|
-| `MainWindow.xaml.cs` | Ініціалізація, жизнений цикл, обробники базових елементів UI |
-| `MainWindow.Audio.cs` | Керування `AudioEngine`: старт/стоп бустера, індикатори рівнів |
-| `MainWindow.Settings.cs` | Панель налаштувань, мова, тема, автозапуск, хоткеї |
-| `MainWindow.Presets.cs` | Список пресетів, створення/перейменування/видалення |
-| `MainWindow.AppMixer.cs` | Мікшер додатків: перелік процесів, правила гучності |
-| `MainWindow.Profiles.cs` | Автопрофілі пристроїв: прив'язка «пристрій виводу → пресет» |
-| `MainWindow.SleepTimer.cs` | Таймер сну: 15/30/60 хв, плавний fade-out |
-| `MainWindow.Spectrum.cs` | Спектр-візуалізатор: FFT-спектр з історією піків |
+| `MainWindow.xaml.cs` | Initialization, lifecycle, basic UI event handlers |
+| `MainWindow.Audio.cs` | `AudioEngine` control: booster start/stop, level indicators |
+| `MainWindow.Settings.cs` | Settings panel, language, theme, autostart, hotkeys |
+| `MainWindow.Presets.cs` | Preset list, creation/rename/deletion |
+| `MainWindow.AppMixer.cs` | App mixer: process list, volume rules |
+| `MainWindow.Profiles.cs` | Device auto-profiles: "output device → preset" bindings |
+| `MainWindow.SleepTimer.cs` | Sleep timer: 15/30/60 minutes, smooth fade-out |
+| `MainWindow.Spectrum.cs` | Spectrum visualizer: FFT spectrum with peak history |
 
-Керування `UpdateService` (перевірка та завантаження оновлень) і логування через `LoggingService` виконується з `MainWindow.Settings.cs` / `App.xaml.cs` відповідно.
+`UpdateService` (update check and download) is driven from `MainWindow.Settings.cs`, and logging via `LoggingService` from `MainWindow.Settings.cs` / `App.xaml.cs` respectively.
 
-## Схема файлів
+## File tree
 
 ```
 WinAudioBooster/
-├── WinAudioBooster.sln                  # Рішення (додаток + тести)
-├── global.json                          # Фіксація версії .NET SDK 8
-├── VBCABLE_Driver_Pack45.zip            # Архів драйвера VB-Cable для вбудованого інсталятора
+├── WinAudioBooster.sln                  # Solution (app + tests)
+├── global.json                          # .NET SDK 8 version pin
+├── VBCABLE_Driver_Pack45.zip            # VB-Cable driver archive for the built-in installer
 ├── .github/workflows/
-│   ├── build.yml                        # CI: restore/build/test на push і PR
-│   └── release.yml                      # Реліз на тег v*: publish + GitHub Release
+│   ├── build.yml                        # CI: restore/build/test on push and PR
+│   └── release.yml                      # Release on v* tag: publish + GitHub Release
 ├── docs/
-│   └── ARCHITECTURE.md                  # Цей документ
+│   └── ARCHITECTURE.md                  # This document
 ├── LICENSE                              # MIT
-└── WinAudioBooster/                     # Головний проект (WPF)
+└── WinAudioBooster/                     # Main project (WPF)
     ├── WinAudioBooster.csproj           # net8.0-windows; single-file, self-contained win-x64
-    ├── App.xaml / App.xaml.cs           # Точка входу, глобальні ресурси, обробка помилок
-    ├── GlobalUsings.cs                  # Глобальні using
-    ├── MiniMixerWindow.xaml(.cs)        # Міні-вікно (компактний режим)
+    ├── App.xaml / App.xaml.cs           # Entry point, global resources, error handling
+    ├── GlobalUsings.cs                  # Global usings
+    ├── MiniMixerWindow.xaml(.cs)        # Mini window (compact mode)
     ├── Audio/
-    │   ├── AudioEngine.cs               # Оркестрація: capture → buffer → DSP → out
-    │   ├── DspProcessor.cs              # Gain, EQ, компресор, лімітер (ISampleProvider)
-    │   ├── DeviceManager.cs             # Пошук/перелік аудіопристроїв (MMDevice)
-    │   ├── AudioDeviceMonitor.cs        # Відстеження підключення/відключення пристроїв
-    │   ├── VolumeManager.cs             # Керування гучністю пристроїв
-    │   └── LevelMeter.cs                # Розрахунок рівнів для індикаторів
+    │   ├── AudioEngine.cs               # Orchestration: capture → buffer → DSP → out
+    │   ├── DspProcessor.cs              # Gain, EQ, compressor, limiter (ISampleProvider)
+    │   ├── DeviceManager.cs             # Audio device lookup/listing (MMDevice)
+    │   ├── AudioDeviceMonitor.cs        # Device connect/disconnect tracking
+    │   ├── VolumeManager.cs             # Device volume control
+    │   └── LevelMeter.cs                # Level calculation for indicators
     ├── Services/
-    │   ├── SettingsManager.cs           # Завантаження/збереження appsettings.json
-    │   ├── PresetManager.cs             # Вбудовані + власні пресети (presets.json)
-    │   ├── ThemeManager.cs              # Застосування тем (merged dictionaries)
-    │   ├── TrayService.cs               # Іконка та меню системного лотка
-    │   ├── HotkeyManager.cs             # Глобальні гарячі клавіші (RegisterHotKey)
-    │   ├── AutoStartService.cs          # Автозапуск з Windows
-    │   ├── VbCableInstaller.cs          # Встановлення VB-Cable (локальний zip або завантаження)
-    │   ├── UpdateService.cs             # Оновлення через GitHub Releases API: перевірка + завантаження exe з перевіркою SHA256, бекап `.bak`, авто-перезапуск
-    │   ├── LoggingService.cs            # Файловий лог у %APPDATA%\WinAudioBooster\log.txt (діагностика)
-    │   ├── AppDetector.cs               # Виявлення запущених додатків (сесії аудіо)
-    │   └── AppVolumeService.cs          # Індивідуальна гучність додатків (ISimpleAudioVolume)
+    │   ├── SettingsManager.cs           # appsettings.json load/save
+    │   ├── PresetManager.cs             # Built-in + custom presets (presets.json)
+    │   ├── ThemeManager.cs              # Theme application (merged dictionaries)
+    │   ├── TrayService.cs               # Notification-area icon and menu
+    │   ├── HotkeyManager.cs             # Global hotkeys (RegisterHotKey)
+    │   ├── AutoStartService.cs          # Autostart with Windows
+    │   ├── VbCableInstaller.cs          # VB-Cable installation (local zip or download)
+    │   ├── UpdateService.cs             # Updates via the GitHub Releases API: check + exe download with SHA256 verification, `.bak` backup, automatic restart
+    │   ├── LoggingService.cs            # File log in %APPDATA%\WinAudioBooster\log.txt (diagnostics)
+    │   ├── AppDetector.cs               # Detection of running applications (audio sessions)
+    │   └── AppVolumeService.cs          # Per-application volume (ISimpleAudioVolume)
     ├── Models/
-    │   ├── AppSettings.cs               # Стан додатка (gain, компресор, лімітер, тема, мова, хоткей)
-    │   ├── Preset.cs                    # Пресет: gain, поріг/співвідношення компресора, стеля лімітера
-    │   ├── ProcessRule.cs               # Правило гучності для процесу (мікшер додатків)
-    │   ├── AppVolumeRule.cs             # Персистентне правило гучності per-app (пам'ять між сесіями)
-    │   ├── DevicePresetBinding.cs       # Автопрофіль: прив'язка «пристрій виводу → пресет»
-    │   └── AppSessionInfo.cs            # Інформація про аудіо-сесію додатка
+    │   ├── AppSettings.cs               # Application state (gain, compressor, limiter, theme, language, hotkey)
+    │   ├── Preset.cs                    # Preset: gain, compressor threshold/ratio, limiter ceiling
+    │   ├── ProcessRule.cs               # Volume rule for a process (app mixer)
+    │   ├── AppVolumeRule.cs             # Persistent per-app volume rule (kept between sessions)
+    │   ├── DevicePresetBinding.cs       # Auto-profile: "output device → preset" binding
+    │   └── AppSessionInfo.cs            # Information about an application's audio session
     ├── Utils/
     │   ├── AudioDeviceSwitcher.cs       # IPolicyConfig: set/restore default device
-    │   ├── JsonHelper.cs                # Читання/запис JSON-файлів
-    │   └── CultureHelper.cs             # Перемикання мови інтерфейсу (uk/en)
+    │   ├── JsonHelper.cs                # JSON file read/write
+    │   └── CultureHelper.cs             # Interface language switching (uk/en)
     ├── Converters/
-    │   ├── GainToColorConverter.cs      # Колір індикатора залежно від gain
-    │   └── GainToWarningVisibilityConverter.cs # Попередження при небезпечному gain
+    │   ├── GainToColorConverter.cs      # Indicator color depending on gain
+    │   └── GainToWarningVisibilityConverter.cs # Warning at dangerous gain
     ├── MainWindow/
-    │   ├── MainWindow.xaml              # Розмітка головного вікна
-    │   └── MainWindow.*.cs              # Partial-класи (див. таблицю вище)
+    │   ├── MainWindow.xaml              # Main window markup
+    │   └── MainWindow.*.cs              # Partial classes (see the table above)
     ├── Themes/Skins/
-    │   ├── Win11Fluent.xaml             # Тема «Windows 11»
-    │   ├── ArchLinux.xaml               # Тема «Arch Linux»
-    │   ├── WindowsXP.xaml               # Тема «Windows XP»
-    │   ├── StudioRack.xaml              # Тема «StudioRack» (за замовчуванням)
-    │   └── LightOverlay.xaml            # Світлий overlay для режиму «Auto (Windows)»
+    │   ├── Win11Fluent.xaml             # "Windows 11" theme
+    │   ├── ArchLinux.xaml               # "Arch Linux" theme
+    │   ├── WindowsXP.xaml               # "Windows XP" theme
+    │   ├── StudioRack.xaml              # "StudioRack" theme (default)
+    │   └── LightOverlay.xaml            # Light overlay for the "Auto (Windows)" mode
     ├── Resources/
-    │   ├── Strings.uk.xaml              # Українська локалізація
-    │   └── Strings.en.xaml              # Англійська локалізація
+    │   ├── Strings.uk.xaml              # Ukrainian localization
+    │   └── Strings.en.xaml              # English localization
     └── Deployment/
-        ├── WinAudioBooster-Setup.iss    # Скрипт інсталятора (Inno Setup)
-        └── Uninstall.ps1                # Скрипт видалення
+        ├── WinAudioBooster-Setup.iss    # Installer script (Inno Setup)
+        └── Uninstall.ps1                # Uninstall script
 ```
 
-## Потоки даних налаштувань
+## Settings data flow
 
-Конфігураційні файли зберігаються в **`%APPDATA%\WinAudioBooster\`** (а не в реєстрі). Міграція: якщо файл є поруч із exe (`AppDomain.CurrentDomain.BaseDirectory` — стара портативна схема), а в APPDATA його ще немає — він автоматично копіюється туди при першому запуску.
+Configuration files are stored in **`%APPDATA%\WinAudioBooster\`** (not in the registry). Migration: if a file exists next to the exe (`AppDomain.CurrentDomain.BaseDirectory` — the old portable scheme) but not yet in APPDATA, it is copied there automatically on first launch.
 
 ```
 ┌──────────────┐   LoadSettings()    ┌──────────────┐
 │ appsettings. │ ──────────────────► │  Settings    │ ──► AppSettings (Models)
-│ json         │ ◄────────────────── │  Manager     │     (gain, EQ, компресор, лімітер,
-└──────────────┘   SaveSettings()    └──────────────┘      тема, мова, хоткей, пристрій,
-                                                            правила мікшера додатків)
+│ json         │ ◄────────────────── │  Manager     │     (gain, EQ, compressor, limiter,
+└──────────────┘   SaveSettings()    └──────────────┘      theme, language, hotkey, device,
+                                                            app mixer rules)
 ┌──────────────┐   LoadCustomPresets() ┌──────────────┐
 │ presets.json │ ────────────────────► │   Preset     │ ──► List<Preset>
-│ (власні      │ ◄──────────────────── │   Manager    │     вбудовані пресети зашиті в код
-│  пресети)    │   SaveCustomPreset()  └──────────────┘
+│ (custom      │ ◄──────────────────── │   Manager    │     built-in presets are in code
+│  presets)    │   SaveCustomPreset()  └──────────────┘
 └──────────────┘
 ```
 
-- `appsettings.json` — серіалізація `Models.AppSettings` через `System.Text.Json` (з відступами). При відсутності/пошкодженні файлу застосовуються значення за замовчуванням.
-- `presets.json` — масив `Models.Preset` (тільки власні; вбудовані п'ять пресетів генерує `PresetManager.GetBuiltInPresets()`). Збереження перезаписує файл ціликом.
-- UI читає/пише налаштування лише через менеджери; зміни застосовуються до `DspProcessor` на льоту (без перезапуску аудіо-ланцюга).
+- `appsettings.json` — serialization of `Models.AppSettings` via `System.Text.Json` (indented). If the file is missing or corrupted, defaults are applied.
+- `presets.json` — an array of `Models.Preset` (custom only; the five built-in presets are generated by `PresetManager.GetBuiltInPresets()`). Saving rewrites the whole file.
+- The UI reads/writes settings only through the managers; changes are applied to `DspProcessor` on the fly (without restarting the audio chain).
 
-## Розширення
+## Extensions
 
-### Як додати вбудований пресет
+### How to add a built-in preset
 
-У `Services/PresetManager.cs` додайте елемент у список `GetBuiltInPresets()`:
+In `Services/PresetManager.cs`, add an entry to the `GetBuiltInPresets()` list:
 
 ```csharp
 new() {
@@ -195,33 +195,33 @@ new() {
     CompressorThresholdDb = -24,
     CompressorRatio = 3.5f,
     LimiterCeilingDb = -0.4f,
-    EqGainsDb = new double[] { 0, 0, 0, 0, 0, 0, 2, 2, 0, 0 } // опційно, 10 смуг
+    EqGainsDb = new double[] { 0, 0, 0, 0, 0, 0, 2, 2, 0, 0 } // optional, 10 bands
 }
 ```
 
-Поля відповідають `Models/Preset.cs`; `IsBuiltIn = true` означає, що пресет не пишеться у `presets.json` і його не можна видалити з UI.
+The fields correspond to `Models/Preset.cs`; `IsBuiltIn = true` means the preset is not written to `presets.json` and cannot be deleted from the UI.
 
-### Як додати смугу EQ
+### How to add an EQ band
 
-1. У `Audio/DspProcessor.cs` додайте частоту в статичний масив `BandFrequencies` — фільтри `BiQuadFilter.PeakingEQ` створюються автоматично для кожної смуги й каналу.
-2. Діапазон гейну визначають константи `MinBandGainDb` / `MaxBandGainDb` (зараз −12…+12 дБ).
-3. У `MainWindow/MainWindow.xaml` додайте слайдер у `UniformGrid` секції «Еквалайзер» (зразок — сусідні 10 слайдерів; частота смуги передається через `Tag`).
-4. За потреби додайте значення смуг у пресет (`Models/Preset.cs`, масив `EqGainsDb`).
+1. In `Audio/DspProcessor.cs`, add a frequency to the static `BandFrequencies` array — `BiQuadFilter.PeakingEQ` filters are created automatically for each band and channel.
+2. The gain range is defined by the `MinBandGainDb` / `MaxBandGainDb` constants (currently -12…+12 dB).
+3. In `MainWindow/MainWindow.xaml`, add a slider to the `UniformGrid` in the "Equalizer" section (the neighboring 10 sliders are the reference; the band frequency is passed via `Tag`).
+4. If needed, add band values to a preset (`Models/Preset.cs`, the `EqGainsDb` array).
 
-### Як додати тему
+### How to add a theme
 
-1. Створіть XAML-словник у `Themes/Skins/`, наприклад `Themes/Skins/MyTheme.xaml`, з визначенням кольорів/стилів (зразок — `StudioRack.xaml`).
-2. Зареєструйте ім'я в `Services/ThemeManager.cs` у switch-вираженні `ApplyTheme`:
+1. Create an XAML dictionary in `Themes/Skins/`, for example `Themes/Skins/MyTheme.xaml`, with color/style definitions (`StudioRack.xaml` is the reference).
+2. Register the name in `Services/ThemeManager.cs` in the `ApplyTheme` switch expression:
 
 ```csharp
 "MyTheme" => "Themes/Skins/MyTheme.xaml",
 ```
 
-3. Додайте запис до списку тем у налаштуваннях UI (`MainWindow.Settings.cs`), щоб тему можна було обрати.
-4. Додайте перекази назви теми в `Resources/Strings.uk.xaml` / `Strings.en.xaml`, якщо назва локалізується.
+3. Add an entry to the theme list in the settings UI (`MainWindow.Settings.cs`) so the theme can be selected.
+4. Add translations of the theme name in `Resources/Strings.uk.xaml` / `Strings.en.xaml` if the name is localized.
 
-### Як додати мову
+### How to add a language
 
-1. Створіть `Resources/Strings.<код>.xaml` за зразком `Strings.uk.xaml`.
-2. Додайте культуру в `Utils/CultureHelper.cs`.
-3. Додайте варіант до вибору мови у налаштуваннях UI.
+1. Create `Resources/Strings.<code>.xaml` following the `Strings.uk.xaml` pattern.
+2. Add the culture to `Utils/CultureHelper.cs`.
+3. Add an option to the language selector in the settings UI.

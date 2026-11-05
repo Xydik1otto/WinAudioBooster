@@ -1,45 +1,39 @@
-# Security Policy / Політика безпеки
+# Security Policy
 
-## Підтримувані версії
+## Supported versions
 
-Безпекові виправлення випускаються для останньої версії з GitHub Releases.
+Security fixes are released for the latest version from GitHub Releases.
 
-| Версія | Підтримка |
-| ------ | --------- |
-| 1.1.x  | ✅ підтримується |
-| 1.0.x  | ❌ (оновлюйтесь до актуальної) |
+| Version | Supported |
+| ------- | --------- |
+| 1.1.x   | Yes       |
+| 1.0.x   | No (upgrade to the current version) |
 
-## Як повідомити про вразливість
+## Reporting a vulnerability
 
-**Будь ласка, не публікуйте вразливості у відкритих Issues.**
+**Please do not publish vulnerabilities in public Issues.**
 
-1. **Рекомендовано — GitHub Security Advisories:** скористайтеся вкладкою *Security → Report a vulnerability* у репозиторії [Xydik1otto/WinAudioBooster](https://github.com/Xydik1otto/WinAudioBooster/security/advisories/new). Діалог приватний, і ви зможете узгодити з мейнтейнером розкриття та кредити.
+1. **Recommended — GitHub Security Advisories:** use the *Security → Report a vulnerability* tab in the [Xydik1otto/WinAudioBooster](https://github.com/Xydik1otto/WinAudioBooster/security/advisories/new) repository. The dialog is private, and you can coordinate disclosure and credit with the maintainer.
 
-2. **Альтернатива — email:** напишіть на **`security@example.com`** *(плейсхолдер — замініть на реальну адресу мейнтейнера)* з темою `[security] WinAudioBooster: <короткий опис>`.
+2. **Alternative — email:** write to **`security@example.com`** *(placeholder — replace with the maintainer's real address)* with the subject `[security] WinAudioBooster: <short description>`.
 
-## Що додати до звіту
+## What to include in a report
 
-- версію додатка (з GitHub Releases або `dotnet publish`);
-- кроки відтворення / PoC;
-- оцінку впливу (що саме може зробити зловмисник);
-- ваші контактні дані для зворотного зв'язку.
+- The application version (from GitHub Releases or `dotnet publish`);
+- Reproduction steps / PoC;
+- An impact assessment (what exactly an attacker could do);
+- Your contact details for follow-up.
 
-## Що очікувати
+## What to expect
 
-- Підтвердження отримання — протягом **72 годин**.
-- Оцінка та план виправлення — протягом 7 днів.
-- Публікація виправлення та координоване розкриття за домовленістю (зазвичай після виходу патч-релізу).
+- Acknowledgement of receipt — within **72 hours**.
+- Assessment and a fix plan — within 7 days.
+- Fix release and coordinated disclosure by agreement (usually after the patch release ships).
 
-## Сфера охоплення (scope)
+## Scope
 
-- Код репозиторію (WPF-додаток, інсталяційні скрипти, CI).
-- Обробка локальних файлів налаштувань (`appsettings.json`, `presets.json` у `%APPDATA%\WinAudioBooster`).
-- Перевірка оновлень через GitHub Releases (цілісність завантажень).
+- Repository code (the WPF application, installation scripts, CI).
+- Handling of local settings files (`appsettings.json`, `presets.json` in `%APPDATA%\WinAudioBooster`).
+- Update checks via GitHub Releases (integrity of downloads).
 
-Позаскоупові питання (VB-Audio CABLE драйвер, сам drivers pack від VB-Audio) не є частиною цього проекта — повідомляйте про них напряму виробнику.
-
----
-
-## English (Summary)
-
-Please **do not open public issues** for security vulnerabilities. Report via **GitHub Security Advisories** (Security → Report a vulnerability) or email **`security@example.com`** *(placeholder — replace with the maintainer's real address)*. Include the app version, reproduction steps, and impact assessment. Acknowledgement within 72 hours; fixes are released and disclosed in a coordinated manner.
+Out-of-scope items (the VB-Audio CABLE driver, the VB-Audio driver pack itself) are not part of this project — report them directly to the vendor.

@@ -32,7 +32,7 @@ public class PresetManagerTests : IDisposable
     {
         var presets = CreateManager().GetBuiltInPresets();
 
-        Assert.Equal(6, presets.Count);
+        Assert.Equal(12, presets.Count);
         foreach (var p in presets)
         {
             Assert.NotNull(p.EqGainsDb);
@@ -178,8 +178,47 @@ public class PresetManagerTests : IDisposable
 
         var all = manager.LoadAllPresets();
 
-        Assert.Equal(7, all.Count);
+        Assert.Equal(13, all.Count);
         Assert.Contains(all, p => p.Name == "Custom One" && !p.IsBuiltIn);
         Assert.Contains(all, p => p.Name == "Headphones" && p.IsBuiltIn);
+    }
+
+    [Fact]
+    public void ProfessionalPresets_EachHaveTenBandEq()
+    {
+        // Кожен новий професійний пресет має 10-смуговий EQ і всі гейни в межах -12..+12 дБ
+        var professionalNames = new[] { "Movies", "Music", "Vocal Boost", "Bass Head", "Late Night Dialog", "Flat / Reference" };
+        var presets = CreateManager().GetBuiltInPresets();
+
+        foreach (var name in professionalNames)
+        {
+            var preset = presets.FirstOrDefault(p => p.Name == name);
+            Assert.True(preset != null, $"Built-in preset '{name}' not found");
+            Assert.True(preset!.IsBuiltIn);
+            Assert.NotNull(preset.EqGainsDb);
+            Assert.Equal(10, preset.EqGainsDb.Length);
+            Assert.All(preset.EqGainsDb, g => Assert.InRange(g, -12, 12));
+        }
+
+        // Flat / Reference: EQ повністю нейтральний, компресор вимкнений через поріг -60
+        var flat = presets.First(p => p.Name == "Flat / Reference");
+        Assert.All(flat.EqGainsDb, g => Assert.Equal(0.0, g));
+        Assert.Equal(-60, flat.CompressorThresholdDb);
+        Assert.Equal(100, flat.GainDb);
+        Assert.Equal(-0.1, flat.LimiterCeilingDb, precision: 1);
+
+        // Late Night Dialog: дуже глибока компресія і дуже низька стеля
+        var lateNight = presets.First(p => p.Name == "Late Night Dialog");
+        Assert.Equal(-40, lateNight.CompressorThresholdDb);
+        Assert.Equal(8.0, lateNight.CompressorRatio, precision: 1);
+        Assert.Equal(-12, lateNight.LimiterCeilingDb, precision: 1);
+
+        // Vocal Boost: підйом розбірності в діапазоні 1-4 кГц (індекси 5..7)
+        var vocal = presets.First(p => p.Name == "Vocal Boost");
+        Assert.True(vocal.EqGainsDb[5] > 0 && vocal.EqGainsDb[6] > 0 && vocal.EqGainsDb[7] > 0);
+
+        // Bass Head: виражений підйом низів
+        var bass = presets.First(p => p.Name == "Bass Head");
+        Assert.True(bass.EqGainsDb[0] > 5 && bass.EqGainsDb[1] > 5);
     }
 }

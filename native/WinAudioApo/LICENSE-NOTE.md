@@ -1,36 +1,37 @@
-# LICENSE-NOTE.md — ліцензійна нотатка native\WinAudioApo
+# LICENSE-NOTE.md — License Note for native\WinAudioApo
 
-Код у `native\WinAudioApo\` має бути ліцензовано під **BSD-2-Clause** (як і весь
-WinAudioBooster), якщо це не суперечить основній ліцензії проєкту (перевір
-кореневий `LICENSE` і приведи ноти до спільного знаменника перед випуском).
+The code in `native\WinAudioApo\` is to be licensed under **BSD-2-Clause** (like the
+rest of WinAudioBooster), unless this conflicts with the project's primary license
+(check the root `LICENSE` and reconcile the notes before release).
 
-## Звідки взято патерн (важливо для сумісності)
+## Where the pattern comes from (important for compatibility)
 
-| Джерело | Ліцензія | Що використано |
+| Source | License | What was used |
 |---------|----------|----------------|
-| Microsoft SYSVAD APO samples (`microsoft/Windows-driver-samples`, `audio/sysvad/APO`) | **MIT** | Архітектурний патерн: `CBaseAudioProcessingObject`, клас-фабрика, обробка `APO_CONNECTION_PROPERTY`, сигнатури методів інтерфейсів |
-| Equalizer APO (SourceForge / дзеркала на GitHub) | **GPL-2.0** | Тільки *документований підхід* до реєстрації (набір реєстрових ключів, конфіг-файл як канал зв'язку з UI) — **жодного рядка вихідного коду не скопійовано** |
-| Офіційна документація Microsoft (Implementing APOs, APO Architecture) | MSDN TOU | Інтерфейси, обмеження, сигнатури |
+| Microsoft SYSVAD APO samples (`microsoft/Windows-driver-samples`, `audio/sysvad/APO`) | **MIT** | The architectural pattern: `CBaseAudioProcessingObject`, the class factory, handling of `APO_CONNECTION_PROPERTY`, interface method signatures |
+| Equalizer APO (SourceForge / GitHub mirrors) | **GPL-2.0** | Only the *documented approach* to registration (the set of registry keys, a config file as the communication channel with the UI) — **not a single line of source code was copied** |
+| Official Microsoft documentation (Implementing APOs, APO Architecture) | MSDN TOU | Interfaces, limitations, signatures |
 
-## ⚠️ Виправлення загальновідомої неточності
+## Correction of a common misconception
 
-У внутрішніх нотатках проєкту Equalizer APO інколи згадують як «BSD-2-Clause» —
-**це не так**: офіційна ліцензія Equalizer APO — **GNU GPL v2**
-(див. `LICENSE` у їхньому репозиторії та сторінку SourceForge). GPL несумісний
-з BSD/MIT-дистрибуцією у тому сенсі, що похідний від GPL код мусить лишатися GPL.
+Internal project notes sometimes describe Equalizer APO as "BSD-2-Clause" —
+**this is incorrect**: the official license of Equalizer APO is **GNU GPL v2**
+(see the `LICENSE` in their repository and the SourceForge page). GPL is
+incompatible with BSD/MIT distribution in the sense that code derived from GPL must
+remain GPL.
 
-Практичний висновок для WinAudioBooster:
+The practical conclusion for WinAudioBooster:
 
-1. **Не копіюємо вихідний текст** Equalizer APO (RegApo/Configurator/EqualizerAPO
-   DLL тощо) у BSD-код. Використовуємо лише публічно задокументовану реєстрову
-   схему — сам набор ключів/значень є способом взаємодії з Windows, а не
-   об'єктом авторського права.
-2. Скелет `WinAudioApo` написаний з нуля за патерном **MIT-ліцензованих** зразків
-   Microsoft (sysvad) — їхній код можна копіювати з атрибуцією безпечно, але тут
-   і його переписано вручну під наш ланцюжок.
-3. Якщо колись знадобиться реальний код з Equalizer APO (наприклад, аналізатор
-   конфіг-синтаксису) — це тягне GPL для всього файлу/модуля; тоді тримати таке
-   в окремому GPL-процесі/гімні або переписувати самостійно.
+1. **We do not copy Equalizer APO source** (RegApo/Configurator/EqualizerAPO
+   DLL etc.) into BSD-licensed code. Only the publicly documented registry scheme is
+   used — the set of keys/values itself is a way of interacting with Windows, not an
+   object of copyright.
+2. The `WinAudioApo` skeleton was written from scratch following the pattern of the
+   **MIT-licensed** Microsoft samples (sysvad) — their code could be copied with
+   attribution safely, but here it was rewritten by hand for our chain as well.
+3. If real code from Equalizer APO is ever needed (for example, a config-syntax
+   parser), it imposes GPL on the whole file/module; in that case keep it in a
+   separate GPL-licensed process/binary or rewrite it independently.
 
-Отже: стартовий пакет безпечно релізити під BSD-2-Clause за умови дотримання
-правила (1).
+Therefore: the starter package can be safely released under BSD-2-Clause provided
+rule (1) is observed.

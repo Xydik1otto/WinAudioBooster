@@ -45,9 +45,9 @@
                     </StackPanel>
 
                     <!-- App Mixer Toggle Button -->
-                    <Button Grid.Column="1" Content="🎛️ Мікшер програм" Click="ToggleAppMixer_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="{DynamicResource AppMixer_Btn}" Click="ToggleAppMixer_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,8,0"/>
                     <Button Grid.Column="2" x:Name="InstallCableButton" Content="{DynamicResource InstallCable_Btn}" Click="InstallCableButton_OnClick" Style="{StaticResource RazerPrimaryButton}"/>
-                    <Button Grid.Column="1" Content="🤖 Правила AI/Apps" Click="ToggleRulesEditor_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="{DynamicResource AppRules_Btn}" Click="ToggleRulesEditor_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,8,0"/>
                 </Grid>
 
                 <!-- Quick Routing Toggle Group -->
@@ -118,17 +118,17 @@
 
                             <ComboBox Grid.Column="0" x:Name="PresetsComboBox" SelectionChanged="PresetsComboBox_OnSelectionChanged" Height="28" Margin="0,0,8,0"/>
                             <Button Grid.Column="1" x:Name="SaveAsPresetButton" Content="{DynamicResource Preset_SaveAs}" Click="SaveAsPresetButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,4,0"/>
-                            <Button Grid.Column="2" x:Name="RenamePresetButton" Content="Перейменов." Click="RenamePresetButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,4,0"/>
+                            <Button Grid.Column="2" x:Name="RenamePresetButton" Content="{DynamicResource Preset_Rename}" Click="RenamePresetButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,4,0"/>
                             <Button Grid.Column="3" x:Name="UpdatePresetButton" Content="{DynamicResource Preset_Update}" Click="UpdatePresetButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,4,0"/>
                             <Button Grid.Column="4" x:Name="DeletePresetButton" Content="{DynamicResource Preset_Delete}" Click="DeletePresetButton_OnClick" Style="{StaticResource RazerButton}" Foreground="#FF5555"/>
                         </Grid>
                     </GroupBox>
 
                     <!-- Volume / Gain Slider -->
-                    <GroupBox Header="Загальна гучність (Volume)" Padding="10">
+                    <GroupBox Header="{DynamicResource Volume_Group}" Padding="10">
                         <StackPanel>
                             <Grid Margin="0,0,0,6">
-                                <TextBlock Text="Рівень підсилення" Foreground="{DynamicResource RazerTextMain}" FontSize="12" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource GainLevel_Text}" Foreground="{DynamicResource RazerTextMain}" FontSize="12" FontWeight="SemiBold"/>
                                 <TextBlock x:Name="GainValueText" Text="{Binding GainPercent, StringFormat={}{0:F0}%}" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToColorConverter}}"/>
                             </Grid>
                             <Slider x:Name="GainSlider" Minimum="0" Maximum="300" Value="{Binding GainPercent, Mode=TwoWay}" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="GainSlider_OnValueChanged"/>
@@ -138,7 +138,6 @@
                     <!-- High Gain Warning -->
                     <Border Margin="0,0,0,12" Padding="10" Background="#2A1A00" BorderBrush="#FF9900" BorderThickness="1" CornerRadius="6" Visibility="{Binding Value, ElementName=GainSlider, Converter={StaticResource GainToWarningVisibilityConverter}}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="⚠️ " FontSize="13"/>
                             <TextBlock Text="{DynamicResource HighGainWarning_Text}" TextWrapping="Wrap" FontSize="11" Foreground="#FFCC66"/>
                         </StackPanel>
                     </Border>
@@ -363,7 +362,7 @@
                 </GroupBox>
 
                 <!-- System Settings: AutoStart, Hotkey & Language -->
-                <GroupBox Grid.Row="5" Header="Системні налаштування" Padding="12" Margin="0,4,0,0">
+                <GroupBox Grid.Row="5" Header="{DynamicResource SystemSettings_Group}" Padding="12" Margin="0,4,0,0">
                     <StackPanel>
                         <!-- AutoStart CheckBox -->
                         <CheckBox x:Name="AutoStartCheckBox" 
@@ -378,10 +377,10 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock Text="Глобальна клавіша бустера" Foreground="{DynamicResource RazerTextMuted}" FontSize="11"/>
+                                <TextBlock Text="{DynamicResource GlobalHotkey_Label}" Foreground="{DynamicResource RazerTextMuted}" FontSize="11"/>
                                 <TextBlock x:Name="HotkeyDisplayText" Text="Ctrl + Alt + B" Foreground="{DynamicResource RazerTextMain}" FontSize="12" FontWeight="SemiBold"/>
                             </StackPanel>
-                            <Button Grid.Column="1" x:Name="ChangeHotkeyButton" Content="Змінити" Click="ChangeHotkeyButton_OnClick" Style="{StaticResource RazerButton}" Padding="8,4" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" x:Name="ChangeHotkeyButton" Content="{DynamicResource Change_Btn}" Click="ChangeHotkeyButton_OnClick" Style="{StaticResource RazerButton}" Padding="8,4" VerticalAlignment="Center"/>
                         </Grid>
 
                         <!-- Додаткові фіксовані глобальні хоткеї (довідково) -->
@@ -430,15 +429,34 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Column="0" Text="Тема оформлення" Foreground="{DynamicResource RazerTextMuted}" VerticalAlignment="Center" FontSize="12" Margin="0,0,12,0"/>
-                            <ComboBox Grid.Column="1" x:Name="ThemeComboBox" SelectionChanged="ThemeComboBox_OnSelectionChanged" HorizontalAlignment="Left" Width="160" Height="26">
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Theme_Label}" Foreground="{DynamicResource RazerTextMuted}" VerticalAlignment="Center" FontSize="12" Margin="0,0,12,0"/>
+                            <ComboBox Grid.Column="1" Grid.Row="0" x:Name="ThemeComboBox" SelectionChanged="ThemeComboBox_OnSelectionChanged" HorizontalAlignment="Left" Width="160" Height="26">
                                 <ComboBoxItem Content="{DynamicResource Theme_Auto}" Tag="Auto (Windows)"/>
                                 <ComboBoxItem Content="Studio Hardware"/>
                                 <ComboBoxItem Content="Arch Linux"/>
                                 <ComboBoxItem Content="Windows XP"/>
                                 <ComboBoxItem Content="Windows 11"/>
                             </ComboBox>
+
+                            <!-- Користувацькі гами: створити з поточної теми / видалити виділену -->
+                            <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Margin="0,6,0,0">
+                                <Button x:Name="CreateThemeButton"
+                                        Content="{DynamicResource CreateTheme_Btn}"
+                                        Style="{DynamicResource RazerButton}"
+                                        FontSize="11" Height="24" Padding="8,2"
+                                        Click="CreateThemeButton_OnClick"/>
+                                <Button x:Name="DeleteThemeButton"
+                                        Content="{DynamicResource DeleteTheme_Btn}"
+                                        Style="{DynamicResource RazerButton}"
+                                        FontSize="11" Height="24" Padding="8,2" Margin="6,0,0,0"
+                                        IsEnabled="False"
+                                        Click="DeleteThemeButton_OnClick"/>
+                            </StackPanel>
                         </Grid>
 
                         <!-- Language Switch -->
@@ -514,7 +532,7 @@
                                 Margin="0,0,0,10" HorizontalAlignment="Stretch"/>
 
                         <!-- Update Check Button -->
-                        <Button x:Name="CheckUpdatesButton" Content="Перевірити оновлення" Click="CheckUpdatesButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,0,10" HorizontalAlignment="Stretch"/>
+                        <Button x:Name="CheckUpdatesButton" Content="{DynamicResource CheckUpdates_Btn}" Click="CheckUpdatesButton_OnClick" Style="{StaticResource RazerButton}" Margin="0,0,0,10" HorizontalAlignment="Stretch"/>
                     </StackPanel>
                 </GroupBox>
             </Grid>
@@ -535,8 +553,8 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock Text="🎛️ Мікшер гучності програм (з Boost до 300%)" Foreground="{DynamicResource RazerTextMain}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <Button Content="✕ Закрити" Click="CloseAppMixer_OnClick" Style="{StaticResource RazerButton}" HorizontalAlignment="Right"/>
+                        <TextBlock Text="{DynamicResource AppMixer_Title}" Foreground="{DynamicResource RazerTextMain}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Content="{DynamicResource Close_Btn}" Click="CloseAppMixer_OnClick" Style="{StaticResource RazerButton}" HorizontalAlignment="Right"/>
                     </Grid>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -563,7 +581,7 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <Button Grid.Row="2" Content="🔄 Оновити список процесів" Click="RefreshAppSessions_OnClick" Style="{StaticResource RazerPrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Center"/>
+                    <Button Grid.Row="2" Content="{DynamicResource RefreshProcesses_Btn}" Click="RefreshAppSessions_OnClick" Style="{StaticResource RazerPrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Center"/>
                 </Grid>
             </Border>
         </Border>
@@ -584,12 +602,12 @@
 
                     <!-- Header -->
                     <Grid Grid.Row="0" Margin="0,0,0,12">
-                        <TextBlock Text="🤖 Редактор правил автовизначення програм" Foreground="{DynamicResource RazerTextMain}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <Button Content="✕ Закрити" Click="CloseRulesEditor_OnClick" Style="{StaticResource RazerButton}" HorizontalAlignment="Right"/>
+                        <TextBlock Text="{DynamicResource AppRules_Title}" Foreground="{DynamicResource RazerTextMain}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Content="{DynamicResource Close_Btn}" Click="CloseRulesEditor_OnClick" Style="{StaticResource RazerButton}" HorizontalAlignment="Right"/>
                     </Grid>
 
                     <!-- Add Rule Form -->
-                    <GroupBox Grid.Row="1" Header="Додати або змінити правило для програми" Padding="10" Margin="0,0,0,12">
+                    <GroupBox Grid.Row="1" Header="{DynamicResource Rules_Group}" Padding="10" Margin="0,0,0,12">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -602,7 +620,7 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- Process ComboBox (Select running or type custom) -->
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Програма / Процес:" Foreground="{DynamicResource RazerTextMuted}" FontSize="11" Margin="0,0,0,4"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Process_Label}" Foreground="{DynamicResource RazerTextMuted}" FontSize="11" Margin="0,0,0,4"/>
                             <ComboBox Grid.Row="1" Grid.Column="0" x:Name="ActiveProcessesComboBox" 
                                       IsEditable="True" 
                                       Height="28" 
@@ -628,13 +646,13 @@
                             </ComboBox>
                             
                             <!-- Preset ComboBox -->
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Авто-пресет:" Foreground="{DynamicResource RazerTextMuted}" FontSize="11" Margin="0,0,0,4"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{DynamicResource AutoPreset_Label}" Foreground="{DynamicResource RazerTextMuted}" FontSize="11" Margin="0,0,0,4"/>
                             <ComboBox Grid.Row="1" Grid.Column="1" x:Name="NewRulePresetCombo" Width="140" Height="28" Margin="0,0,0,0"/>
 
                             <!-- Volume Slider for Rule -->
                             <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,10,0,0">
                                 <Grid Margin="0,0,0,4">
-                                    <TextBlock Text="Індивідуальний рівень гучності (Boost):" Foreground="{DynamicResource RazerTextMuted}" FontSize="11"/>
+                                    <TextBlock Text="{DynamicResource CustomBoost_Label}" Foreground="{DynamicResource RazerTextMuted}" FontSize="11"/>
                                     <TextBlock x:Name="RuleVolumeText" Text="100%" Foreground="{DynamicResource RazerGreen}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Right"/>
                                 </Grid>
                                 <Grid>
@@ -643,7 +661,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Slider Grid.Column="0" x:Name="RuleVolumeSlider" Minimum="0" Maximum="300" Value="100" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="RuleVolumeSlider_OnValueChanged" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                    <Button Grid.Column="1" Content="Зберегти правило" Click="AddCustomRule_OnClick" Style="{StaticResource RazerPrimaryButton}" Height="28" Padding="12,4"/>
+                                    <Button Grid.Column="1" Content="{DynamicResource SaveRule_Btn}" Click="AddCustomRule_OnClick" Style="{StaticResource RazerPrimaryButton}" Height="28" Padding="12,4"/>
                                 </Grid>
                             </StackPanel>
                         </Grid>
@@ -666,7 +684,7 @@
                                             <TextBlock Grid.Column="0" Text="{Binding ProcessName}" Foreground="{DynamicResource RazerTextMain}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="1" Text="{Binding TargetPresetName}" Foreground="{DynamicResource RazerGreen}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="2" Text="{Binding VolumePercent, StringFormat={}{0:F0}%}" Foreground="#00BCFF" FontWeight="Bold" VerticalAlignment="Center"/>
-                                            <Button Grid.Column="3" Content="Видалити" Tag="{Binding ProcessName}" Click="DeleteRule_OnClick" Style="{StaticResource RazerButton}" Foreground="#FF5555" Padding="8,2"/>
+                                            <Button Grid.Column="3" Content="{DynamicResource DeleteRule_Btn}" Tag="{Binding ProcessName}" Click="DeleteRule_OnClick" Style="{StaticResource RazerButton}" Foreground="#FF5555" Padding="8,2"/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -675,7 +693,7 @@
                     </ScrollViewer>
 
                     <!-- Description Footer (Fixed clipping with TextWrapping) -->
-                    <TextBlock Grid.Row="3" Text="Принцип роботи: при запуску програми автоматично застосовується вказана гучність (до 300%) та пресет." 
+                    <TextBlock Grid.Row="3" Text="{DynamicResource RulesDescription_Text}" 
                                Foreground="{DynamicResource RazerTextMuted}" 
                                FontSize="11" 
                                TextWrapping="Wrap" 

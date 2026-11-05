@@ -58,6 +58,14 @@ public class PresetManager
         // м'який поріг компресора + низька стеля лімітера — звук не вище комфортного рівня вночі.
         var nightShape = new double[] { -2.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, -1.0 };
 
+        // Професійні пресети: кіно, музика, мовлення, бас, нічні діалоги, нейтральний еталон.
+        var moviesShape = new double[] { 3.0, 4.0, 3.0, 1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 2.0 };
+        var musicShape = new double[] { 2.0, 1.5, 1.0, 0.0, 0.0, 0.0, -0.5, 0.0, 1.0, 1.5 };
+        var vocalShape = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, 3.0, 4.0, 3.0, 1.0, 0.0 };
+        var bassHeadShape = new double[] { 8.0, 7.0, 5.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.0 };
+        var lateNightDialogShape = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 1.0, 0.0, 0.0 };
+        var flatShape = new double[DspProcessor.BandCount];
+
         var presets = new List<Preset>
         {
             new() { Name = "Light Boost", IsBuiltIn = true, GainDb = 120, CompressorThresholdDb = -20, CompressorRatio = 2.0f, LimiterCeilingDb = -0.3f, EqGainsDb = (double[])flat.Clone() },
@@ -65,7 +73,20 @@ public class PresetManager
             new() { Name = "Headphones", IsBuiltIn = true, GainDb = 140, CompressorThresholdDb = -25, CompressorRatio = 3.0f, LimiterCeilingDb = -0.5f, EqGainsDb = (double[])vShape.Clone() },
             new() { Name = "Games", IsBuiltIn = true, GainDb = 160, CompressorThresholdDb = -28, CompressorRatio = 5.0f, LimiterCeilingDb = -0.2f, EqGainsDb = (double[])gamesShape.Clone() },
             new() { Name = "Calls", IsBuiltIn = true, GainDb = 125, CompressorThresholdDb = -18, CompressorRatio = 4.0f, LimiterCeilingDb = -0.5f, EqGainsDb = (double[])callsShape.Clone() },
-            new() { Name = "Night Mode", IsBuiltIn = true, GainDb = 110, CompressorThresholdDb = -35, CompressorRatio = 6.0f, LimiterCeilingDb = -6.0f, EqGainsDb = (double[])nightShape.Clone() }
+            new() { Name = "Night Mode", IsBuiltIn = true, GainDb = 110, CompressorThresholdDb = -35, CompressorRatio = 6.0f, LimiterCeilingDb = -6.0f, EqGainsDb = (double[])nightShape.Clone() },
+            // Кіно: легкий підйом низів і верхів, м'яка компресія — комфортне кінопереглядання.
+            new() { Name = "Movies", IsBuiltIn = true, GainDb = 130, CompressorThresholdDb = -25, CompressorRatio = 2.5f, LimiterCeilingDb = -0.5f, EqGainsDb = (double[])moviesShape.Clone() },
+            // Музика: нейтрально з теплими низами, м'яка компресія.
+            new() { Name = "Music", IsBuiltIn = true, GainDb = 120, CompressorThresholdDb = -22, CompressorRatio = 2.0f, LimiterCeilingDb = -0.3f, EqGainsDb = (double[])musicShape.Clone() },
+            // Подкасти/лекції: тісна компресія + підйом 1-4 кГц — чітке мовлення.
+            new() { Name = "Vocal Boost", IsBuiltIn = true, GainDb = 115, CompressorThresholdDb = -20, CompressorRatio = 3.5f, LimiterCeilingDb = -0.5f, EqGainsDb = (double[])vocalShape.Clone() },
+            // Сильні баси: виражений підйом низів, жорстка компресія тримає піки.
+            new() { Name = "Bass Head", IsBuiltIn = true, GainDb = 140, CompressorThresholdDb = -26, CompressorRatio = 4.0f, LimiterCeilingDb = -0.3f, EqGainsDb = (double[])bassHeadShape.Clone() },
+            // Нічні фільми/розмова: дуже глибока компресія і низька стеля — тихо, але все чутно.
+            new() { Name = "Late Night Dialog", IsBuiltIn = true, GainDb = 100, CompressorThresholdDb = -40, CompressorRatio = 8.0f, LimiterCeilingDb = -12.0f, EqGainsDb = (double[])lateNightDialogShape.Clone() },
+            // Еталонний Flat: EQ нейтральний, компресор вимкнений (поріг -60 — ніколи не спрацьовує),
+            // лімітер лише як антикліп.
+            new() { Name = "Flat / Reference", IsBuiltIn = true, GainDb = 100, CompressorThresholdDb = -60, CompressorRatio = 1.0f, LimiterCeilingDb = -0.1f, EqGainsDb = (double[])flatShape.Clone() }
         };
 
         foreach (var p in presets) NormalizePreset(p);

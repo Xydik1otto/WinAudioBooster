@@ -56,4 +56,7 @@ public class AppSettings
     public bool QuietHoursEnabled { get; set; } = false;
     public int QuietHoursStart { get; set; } = 23;
     public int QuietHoursEnd { get; set; } = 7;
+
+    // Користувацькі колірні гами (custom color palettes), створені з поточної теми
+    public List<CustomTheme> CustomThemes { get; set; } = new();
 }

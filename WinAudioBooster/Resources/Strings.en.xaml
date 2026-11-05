@@ -5,27 +5,30 @@
     <sys:String x:Key="AppTitle">WinAudioBooster</sys:String>
     <sys:String x:Key="MainWindow_Title">WinAudioBooster – Settings</sys:String>
     <sys:String x:Key="EnableBooster_Label">Enable Booster</sys:String>
-    <sys:String x:Key="BoosterState_On">ACTIVE</sys:String>
+    <sys:String x:Key="BoosterState_On">ON</sys:String>
     <sys:String x:Key="BoosterState_Off">OFF</sys:String>
+    <sys:String x:Key="Mini_Volume">Volume</sys:String>
+    <sys:String x:Key="Mini_Settings">Settings</sys:String>
     <sys:String x:Key="AutoStart_Label">Start automatically with Windows</sys:String>
 
     <!-- Routing -->
     <sys:String x:Key="Routing_Group">Windows Audio Routing</sys:String>
-    <sys:String x:Key="SetCableDefault_Btn">Set CABLE as Default (For Booster)</sys:String>
-    <sys:String x:Key="SetSpeakersDefault_Btn">Restore Speakers (Direct Sound)</sys:String>
+    <sys:String x:Key="SetCableDefault_Btn">Set CABLE as Default</sys:String>
+    <sys:String x:Key="SetSpeakersDefault_Btn">Set Speakers as Default</sys:String>
 
     <sys:String x:Key="OutputDevice_Group">Physical Speakers / Headphones</sys:String>
-    <sys:String x:Key="OutputDevice_Label">Output sound to:</sys:String>
+    <sys:String x:Key="OutputDevice_Label">Output to:</sys:String>
 
     <sys:String x:Key="Presets_Group">Presets</sys:String>
     <sys:String x:Key="Preset_SaveAs">Save New</sys:String>
     <sys:String x:Key="Preset_Update">Update</sys:String>
     <sys:String x:Key="Preset_PromptName">Enter a name for the new preset:</sys:String>
     <sys:String x:Key="Preset_Delete">Delete</sys:String>
+    <sys:String x:Key="Preset_Rename">Rename</sys:String>
 
     <sys:String x:Key="Gain_Label">Gain, dB</sys:String>
     <sys:String x:Key="HighGainWarning_Text">High gain levels may damage speakers/headphones and your hearing.</sys:String>
-    <sys:String x:Key="Language_Label">Language / Мова</sys:String>
+    <sys:String x:Key="Language_Label">Language</sys:String>
     <sys:String x:Key="Language_Ukrainian">Українська</sys:String>
     <sys:String x:Key="Language_English">English</sys:String>
 
@@ -54,7 +57,7 @@
     <sys:String x:Key="CableInstalled_Btn">Driver Installed</sys:String>
 
     <!-- Hearing protection -->
-    <sys:String x:Key="HearingProtection_Label">Hearing protection (warn above &gt;150% gain)</sys:String>
+    <sys:String x:Key="HearingProtection_Label">Hearing protection</sys:String>
     <sys:String x:Key="HearingProtection_Title">Hearing Protection</sys:String>
     <sys:String x:Key="HearingProtection_Message">Gain above 150% may cause permanent hearing damage.&#10;&#10;"Yes" — continue at this level,&#10;"No" — reduce to 150%.</sys:String>
 
@@ -67,8 +70,20 @@
     <!-- Auto theme (follows Windows) -->
     <sys:String x:Key="Theme_Auto">Auto (Windows)</sys:String>
 
+    <!-- Custom color palettes -->
+    <sys:String x:Key="CreateTheme_Btn">Create from current…</sys:String>
+    <sys:String x:Key="DeleteTheme_Btn">Delete theme</sys:String>
+    <sys:String x:Key="CustomTheme_NameTitle">New custom theme</sys:String>
+    <sys:String x:Key="CustomTheme_NameLabel">Theme name:</sys:String>
+    <sys:String x:Key="CustomTheme_Ok">OK</sys:String>
+    <sys:String x:Key="CustomTheme_Cancel">Cancel</sys:String>
+    <sys:String x:Key="CustomTheme_EmptyName">Please enter a non-empty theme name.</sys:String>
+    <sys:String x:Key="CustomTheme_DuplicateName">A theme with this name already exists.</sys:String>
+    <sys:String x:Key="CustomTheme_DeleteBuiltin">Built-in themes cannot be deleted.</sys:String>
+    <sys:String x:Key="CustomTheme_DeleteConfirm">Delete custom theme "{0}"?</sys:String>
+
     <!-- Extra fixed global hotkeys -->
-    <sys:String x:Key="Hotkeys_ExtraInfo">Hotkeys: Ctrl+Alt+1…5 — apply preset 1–5, Ctrl+Alt+D — DSP bypass (booster on/off).</sys:String>
+    <sys:String x:Key="Hotkeys_ExtraInfo">Hotkeys: Ctrl+Alt+1…5 — presets 1–5, Ctrl+Alt+D — DSP bypass.</sys:String>
 
     <!-- Sleep timer -->
     <sys:String x:Key="SleepTimer_Label">Sleep timer</sys:String>
@@ -80,7 +95,7 @@
     <!-- Quick DSP toggles (Equalizer section) -->
     <sys:String x:Key="BassBoost_Label">Bass Boost</sys:String>
     <sys:String x:Key="TrebleBoost_Label">Treble Boost</sys:String>
-    <sys:String x:Key="SubBassFilter_Label">Cut sub-bass (30 Hz)</sys:String>
+    <sys:String x:Key="SubBassFilter_Label">Sub-bass filter (30 Hz)</sys:String>
 
     <!-- Spatial DSP toggles & balance (Equalizer section) -->
     <sys:String x:Key="Loudness_Label">Loudness normalization</sys:String>
@@ -90,8 +105,8 @@
     <sys:String x:Key="Balance_Label">Balance L/R (0 — center)</sys:String>
 
     <!-- Event log (settings) -->
-    <sys:String x:Key="Logging_Label">Enable event logging</sys:String>
-    <sys:String x:Key="OpenLog_Btn">📄 Open log</sys:String>
+    <sys:String x:Key="Logging_Label">Log events</sys:String>
+    <sys:String x:Key="OpenLog_Btn">Open log</sys:String>
 
     <!-- Scheduled night mode (Quiet Hours) -->
     <sys:String x:Key="QuietHours_Label">Scheduled night mode (applies "Night Mode" preset)</sys:String>
@@ -103,4 +118,32 @@
     <sys:String x:Key="OSD_BypassOn">Bypass: On</sys:String>
     <sys:String x:Key="OSD_BypassOff">Bypass: Off</sys:String>
     <sys:String x:Key="OSD_Volume">Volume: {0:F0}%</sys:String>
+
+    <!-- Volume -->
+    <sys:String x:Key="Volume_Group">Master Volume</sys:String>
+    <sys:String x:Key="GainLevel_Text">Gain level</sys:String>
+
+    <!-- System settings -->
+    <sys:String x:Key="SystemSettings_Group">System</sys:String>
+    <sys:String x:Key="GlobalHotkey_Label">Global booster hotkey</sys:String>
+    <sys:String x:Key="Change_Btn">Change</sys:String>
+    <sys:String x:Key="Theme_Label">Theme</sys:String>
+    <sys:String x:Key="CheckUpdates_Btn">Check for updates</sys:String>
+
+    <!-- Per-app mixer -->
+    <sys:String x:Key="AppMixer_Btn">App Mixer</sys:String>
+    <sys:String x:Key="AppMixer_Title">Per-App Volume Mixer (Boost up to 300%)</sys:String>
+    <sys:String x:Key="Close_Btn">Close</sys:String>
+    <sys:String x:Key="RefreshProcesses_Btn">Refresh list</sys:String>
+
+    <!-- App detection rules -->
+    <sys:String x:Key="AppRules_Btn">App Rules</sys:String>
+    <sys:String x:Key="AppRules_Title">App Detection Rules</sys:String>
+    <sys:String x:Key="Rules_Group">Program Rule</sys:String>
+    <sys:String x:Key="Process_Label">Program / process:</sys:String>
+    <sys:String x:Key="AutoPreset_Label">Auto preset:</sys:String>
+    <sys:String x:Key="CustomBoost_Label">Custom boost:</sys:String>
+    <sys:String x:Key="SaveRule_Btn">Save rule</sys:String>
+    <sys:String x:Key="DeleteRule_Btn">Delete</sys:String>
+    <sys:String x:Key="RulesDescription_Text">When a program starts, its boost level (up to 300%) and preset are applied automatically.</sys:String>
 </ResourceDictionary>

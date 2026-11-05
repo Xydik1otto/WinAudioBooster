@@ -1,24 +1,26 @@
-# Ідеї з дослідження конкурентів (хвиля 2) — 2026-11-05
+# Competitor Research Ideas (Wave 2) — 2026-11-05
 
-Джерела: Equalizer APO+Peace, FxSound, Voicemeeter, EarTrumpet, Volume², Sound Lock, EBU R128-нормалізатори, AutoEq.
+Sources: Equalizer APO+Peace, FxSound, Voicemeeter, EarTrumpet, Volume², Sound Lock, EBU R128 normalizers, AutoEq.
 
-## Відібрано для хвилі 2 (цінність × простота на NAudio/WPF)
+## Selected for wave 2 (value × effort on NAudio/WPF)
 
-1. **Bass Boost / Treble toggle (1-клік ефекти, як FxSound)** — BiQuadFilter.MakeLowShelf(~90 Гц, +6..12 дБ) / MakeHighShelf(~9 кГц) як toggle поверх EQ. Реалізація: у DspProcessor два shelf-фільтри на канал + bool IsBassBoostEnabled/IsTrebleBoostEnabled; UI — два чекбокси біля EQ.
-2. **Loudness normalization / нічний режим (компресор зі стелею, Sound Lock / Windows Loudness Eq)** — у нас вже є компресор+лімітер; додати пресет/тумблер «Нічний режим»: м'який поріг, стеля гучності. Мінімальна робота — пресет + майже без DSP-змін.
-3. **Авто dark/light тема за Windows (EarTrumpet-стандарт)** — Registry HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize → AppsUseLightTheme; підписка через SystemEvents.UserPreferenceChanged; мапінг на існуючі скіни (Win11Fluent ↔ світлий варіант або лайт-ресурси).
-4. **Глобальні hotkeys на пресети/bypass/mute** — RegisterHotKey P/Invoke (HotkeyManager вже існує — розширити): Ctrl+Alt+1..5 → пресет, Ctrl+Alt+D → bypass (DSP on/off), фідбек через tray balloon.
-5. **Sleep timer + fade-out** — DispatcherTimer N хв → плавне зниження гейну до 0 → Stop. UI: ComboBox 15/30/60 хв у системних налаштуваннях.
-6. **Spectrum visualizer (FxSound wow-ефект)** — тапок ISampleProvider після DSP → буфер 2048 семплів → NAudio.Dsp.Fft → 32 біна → Canvas-бари, оновлення через CompositionTarget.Rendering. Середня складність.
-7. **Sub-bass HPF 30 Гц** (звільняє headroom при бусті) — BiQuadFilter.HighPass, toggle у EQ-секції.
+1. **Bass Boost / Treble toggles (one-click effects, as in FxSound)** — `BiQuadFilter.MakeLowShelf` (~90 Hz, +6..12 dB) / `MakeHighShelf` (~9 kHz) as toggles on top of the EQ. Implementation: two shelf filters per channel in DspProcessor plus `bool IsBassBoostEnabled`/`IsTrebleBoostEnabled`; UI — two checkboxes next to the EQ.
+2. **Loudness normalization / night mode (compressor with a ceiling; Sound Lock / Windows Loudness Equalization)** — a compressor and limiter already exist; add a preset/toggle "Night Mode": a gentle threshold, a volume ceiling. Minimal work — a preset plus almost no DSP changes.
+3. **Automatic dark/light theme following Windows (the EarTrumpet standard)** — registry `HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize` → `AppsUseLightTheme`; subscribe via `SystemEvents.UserPreferenceChanged`; map onto the existing skins (Win11Fluent ↔ a light variant, or light resources).
+4. **Global hotkeys for presets/bypass/mute** — `RegisterHotKey` P/Invoke (`HotkeyManager` already exists — extend it): Ctrl+Alt+1..5 → preset, Ctrl+Alt+D → bypass (DSP on/off), feedback via a tray balloon.
+5. **Sleep timer + fade-out** — `DispatcherTimer` for N minutes → a smooth gain ramp to 0 → Stop. UI: a ComboBox with 15/30/60 minutes in the system settings.
+6. **Spectrum visualizer (the FxSound effect)** — an `ISampleProvider` tap after the DSP → a 2048-sample buffer → `NAudio.Dsp.Fft` → 32 bins → Canvas bars, updated via `CompositionTarget.Rendering`. Medium complexity.
+7. **Sub-bass HPF at 30 Hz** (frees headroom when boosting) — `BiQuadFilter.HighPass`, a toggle in the EQ section.
 
-## Відкладено (складніше/ніше пріоритет)
-- EBU R128 автогейн у реальному часі (K-weighted LUFS) — після MVVM-рефакторингу.
-- Crossfeed, stereo widening, AutoEq-імпорт CSV, баланс/моно, scheduler профілів, OSD.
+## Deferred (larger / lower priority)
 
-## Прямі запозичення з конкурентів
-- FxSound: bypass-тумблер A/B (уже є IsEnabled → зробити гарячою клавішею), прив'язка пресет→пристрій (вже в хвилі 1).
-- Peace: preamp-компенсація при бусті (обмежити негативний makeup — лімітер уже покриває).
-- Voicemeeter: limiter у кінці ланцюга (уже є tanh-лімітер).
-- EarTrumpet: live-пікові індикатори (VU вже є).
-- Volume²: OSD при зміні гучності хоткеєм (tray balloon достатньо).
+- EBU R128 real-time auto-gain (K-weighted LUFS) — after the MVVM refactoring.
+- Crossfeed, stereo widening, AutoEq CSV import, balance/mono, profile scheduler, OSD.
+
+## Direct borrowings from competitors
+
+- FxSound: the A/B bypass toggle (`IsEnabled` already exists — expose it as a hotkey), preset-to-device binding (already in wave 1).
+- Peace: preamp compensation when boosting (limit the negative makeup — the limiter already covers it).
+- Voicemeeter: a limiter at the end of the chain (the tanh limiter already exists).
+- EarTrumpet: live peak indicators (VU meters already exist).
+- Volume²: an OSD on volume change via a hotkey (a tray balloon is sufficient).
