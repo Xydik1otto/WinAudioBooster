@@ -10,7 +10,7 @@
 #   (або `sha256sum WinAudioBooster.exe` у git-bash)
 
 PackageIdentifier: Xydik1otto.WinAudioBooster
-PackageVersion: 1.2.0
+PackageVersion: 1.3.0
 PackageLocale: uk-UA
 Publisher: Xydik1otto
 PackageName: WinAudioBooster
@@ -34,11 +34,11 @@ Moniker: winaudiobooster
 Installers:
   - Architecture: x64
     InstallerType: portable
-    InstallerUrl: https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.2.0/WinAudioBooster.exe
-    InstallerSha256: ac33a0d7683cb882d3d5e96c713d68eb10673e9010cf57a242e9242d5e1791f0 # розраховано з опублікованого v1.2.0 exe
+    InstallerUrl: https://github.com/Xydik1otto/WinAudioBooster/releases/download/v1.3.0/WinAudioBooster.exe
+    InstallerSha256: e0465fe2ee43a343e70863618b6d400157ab49f5ace703ecef70694693a4f540 # розраховано CI для v1.3.0
     InstallerSwitches:
       Portable: ''
     PortableCommandAlias: winaudiobooster
 ManifestType: singleton
 ManifestVersion: 1.4.0
-ReleaseNotesUrl: https://github.com/Xydik1otto/WinAudioBooster/releases/tag/v1.1.0
+ReleaseNotesUrl: https://github.com/Xydik1otto/WinAudioBooster/releases/tag/v1.3.0
