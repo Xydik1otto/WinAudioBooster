@@ -55,7 +55,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload artifact to GitHub Release (exe + installer, if built)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             WinAudioBooster/bin/Release/net8.0-windows/win-x64/publish/WinAudioBooster.exe
