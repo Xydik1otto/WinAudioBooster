@@ -1,0 +1,18 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        Світлий overlay для авто-теми (режим "Auto (Windows)" у ThemeManager).
+        Перевизначає ЛИШЕ фонові/межові/текстові кольори поверх вибраного скіна.
+        Акцентні кольори (RazerGreen / RazerGreenHover) не чіпаємо — їх задає базовий скін.
+        Застосовується лише коли системна тема Windows — світла (AppsUseLightTheme = 1).
+    -->
+
+    <SolidColorBrush x:Key="RazerBg" Color="#F3F3F3"/>
+    <SolidColorBrush x:Key="RazerCardBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="RazerCardHeaderBg" Color="#EBEBEB"/>
+    <SolidColorBrush x:Key="RazerBorder" Color="#D9D9D9"/>
+    <SolidColorBrush x:Key="RazerBorderActive" Color="#0067C0"/>
+    <SolidColorBrush x:Key="RazerTextMain" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="RazerTextMuted" Color="#5C5C5C"/>
+</ResourceDictionary>

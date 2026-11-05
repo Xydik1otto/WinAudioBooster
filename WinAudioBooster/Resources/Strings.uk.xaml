@@ -1,0 +1,106 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <sys:String x:Key="AppTitle">WinAudioBooster</sys:String>
+    <sys:String x:Key="MainWindow_Title">WinAudioBooster – Налаштування</sys:String>
+    <sys:String x:Key="EnableBooster_Label">Увімкнути бустер</sys:String>
+    <sys:String x:Key="BoosterState_On">УВІМКНЕНО</sys:String>
+    <sys:String x:Key="BoosterState_Off">ВИМКНЕНО</sys:String>
+    <sys:String x:Key="AutoStart_Label">Автозапуск разом із Windows</sys:String>
+
+    <!-- Перемикання дефолтного пристрою -->
+    <sys:String x:Key="Routing_Group">Маршрутизація звуку Windows</sys:String>
+    <sys:String x:Key="SetCableDefault_Btn">Зробити CABLE дефолтним (Для бустера)</sys:String>
+    <sys:String x:Key="SetSpeakersDefault_Btn">Повернути динаміки (Прямий звук)</sys:String>
+
+    <sys:String x:Key="OutputDevice_Group">Фізичні динаміки / Навушники</sys:String>
+    <sys:String x:Key="OutputDevice_Label">Виводити звук на:</sys:String>
+
+    <sys:String x:Key="Presets_Group">Пресети</sys:String>
+    <sys:String x:Key="Preset_SaveAs">Зберегти новий</sys:String>
+    <sys:String x:Key="Preset_Update">Оновити</sys:String>
+    <sys:String x:Key="Preset_PromptName">Введіть назву для нового пресету:</sys:String>
+    <sys:String x:Key="Preset_Delete">Видалити</sys:String>
+
+    <sys:String x:Key="Gain_Label">Підсилення (Gain), dB</sys:String>
+    <sys:String x:Key="HighGainWarning_Text">Високий рівень підсилення може пошкодити динаміки/навушники та слух.</sys:String>
+    <sys:String x:Key="Language_Label">Мова / Language</sys:String>
+    <sys:String x:Key="Language_Ukrainian">Українська</sys:String>
+    <sys:String x:Key="Language_English">English</sys:String>
+
+    <sys:String x:Key="Compressor_Group">Компресор</sys:String>
+    <sys:String x:Key="Threshold_Label">Поріг (Threshold), dB</sys:String>
+    <sys:String x:Key="Ratio_Label">Співвідношення (Ratio)</sys:String>
+
+    <sys:String x:Key="Limiter_Group">Лімітер</sys:String>
+    <sys:String x:Key="Ceiling_Label">Стеля (Ceiling), dB</sys:String>
+
+    <sys:String x:Key="Eq_Group">Еквалайзер</sys:String>
+    <sys:String x:Key="Eq_Enable">Увімкнути еквалайзер</sys:String>
+    <sys:String x:Key="Eq_Reset">Скинути</sys:String>
+    <sys:String x:Key="Eq_ImportAutoEq">Імпорт AutoEq</sys:String>
+
+    <!-- Імпорт AutoEq-кривих -->
+    <sys:String x:Key="AutoEq_OpenDialog_Title">Імпорт AutoEq-кривої</sys:String>
+    <sys:String x:Key="AutoEq_Error_Title">Помилка імпорту AutoEq</sys:String>
+    <sys:String x:Key="AutoEq_Error_Message">Не вдалося імпортувати AutoEq-криву.&#10;&#10;{0}</sys:String>
+
+    <sys:String x:Key="VuMeters_Group">Рівні сигналу (VU)</sys:String>
+    <sys:String x:Key="Vu_Input">Вхід:</sys:String>
+    <sys:String x:Key="Vu_Output">Вихід:</sys:String>
+
+    <sys:String x:Key="InstallCable_Btn">Установити VB-Cable</sys:String>
+    <sys:String x:Key="CableInstalled_Btn">Драйвер встановлено</sys:String>
+
+    <!-- Захист слуху -->
+    <sys:String x:Key="HearingProtection_Label">Захист слуху (попередження при підсиленні &gt;150%)</sys:String>
+    <sys:String x:Key="HearingProtection_Title">Захист слуху</sys:String>
+    <sys:String x:Key="HearingProtection_Message">Рівень підсилення більше 150% може призвести до незворотного пошкодження слуху.&#10;&#10;«Так» — продовжити на цьому рівні,&#10;«Ні» — зменшити до 150%.</sys:String>
+
+    <!-- Профілі пристроїв -->
+    <sys:String x:Key="DeviceProfiles_Group">Профілі пристроїв</sys:String>
+    <sys:String x:Key="DeviceProfiles_Device">Пристрій виводу</sys:String>
+    <sys:String x:Key="DeviceProfiles_Preset">Пресет</sys:String>
+    <sys:String x:Key="DeviceProfiles_Add">Додати прив'язку</sys:String>
+
+    <!-- Авто-тема за Windows -->
+    <sys:String x:Key="Theme_Auto">Авто (Windows)</sys:String>
+
+    <!-- Додаткові фіксовані глобальні хоткеї -->
+    <sys:String x:Key="Hotkeys_ExtraInfo">Гарячі клавіші: Ctrl+Alt+1…5 — застосувати пресет 1–5, Ctrl+Alt+D — bypass DSP (увімк/вимк бустер).</sys:String>
+
+    <!-- Таймер сну -->
+    <sys:String x:Key="SleepTimer_Label">Таймер сну</sys:String>
+    <sys:String x:Key="SleepTimer_Off">Вимк</sys:String>
+    <sys:String x:Key="SleepTimer_15Min">15 хв</sys:String>
+    <sys:String x:Key="SleepTimer_30Min">30 хв</sys:String>
+    <sys:String x:Key="SleepTimer_60Min">60 хв</sys:String>
+
+    <!-- Швидкі DSP-тоггли (секція Еквалайзер) -->
+    <sys:String x:Key="BassBoost_Label">Bass Boost</sys:String>
+    <sys:String x:Key="TrebleBoost_Label">Treble Boost</sys:String>
+    <sys:String x:Key="SubBassFilter_Label">Cut sub-bass (30 Гц)</sys:String>
+
+    <!-- Просторові DSP-тоггли та баланс (секція Еквалайзер) -->
+    <sys:String x:Key="Loudness_Label">Loudness normalization</sys:String>
+    <sys:String x:Key="StereoWidth_Label">Stereo width</sys:String>
+    <sys:String x:Key="Crossfeed_Label">Crossfeed (навушники)</sys:String>
+    <sys:String x:Key="Mono_Label">Mono</sys:String>
+    <sys:String x:Key="Balance_Label">Баланс L/R (0 — центр)</sys:String>
+
+    <!-- Журнал подій (налаштування) -->
+    <sys:String x:Key="Logging_Label">Вести журнал подій (лог)</sys:String>
+    <sys:String x:Key="OpenLog_Btn">📄 Відкрити лог</sys:String>
+
+    <!-- Нічний режим за розкладом (Quiet Hours) -->
+    <sys:String x:Key="QuietHours_Label">Нічний режим за розкладом (пресет «Night Mode»)</sys:String>
+    <sys:String x:Key="QuietHours_Start">Початок:</sys:String>
+    <sys:String x:Key="QuietHours_End">Кінець:</sys:String>
+
+    <!-- OSD-фідбек хоткеїв (tray balloon) -->
+    <sys:String x:Key="OSD_Preset">Пресет: {0}</sys:String>
+    <sys:String x:Key="OSD_BypassOn">Bypass: On</sys:String>
+    <sys:String x:Key="OSD_BypassOff">Bypass: Off</sys:String>
+    <sys:String x:Key="OSD_Volume">Гучність: {0:F0}%</sys:String>
+</ResourceDictionary>

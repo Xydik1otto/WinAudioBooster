@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  push:
+    branches: [ '*' ]
+    # Не перезапускати збірку через авто-коміти хешів маніфестів (job update-manifests
+    # у release.yml) та правки changelog — інакше CI зациклюється сам на собі.
+    paths-ignore:
+      - 'packaging/**'
+      - 'CHANGELOG.md'
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies (main project)
+        run: dotnet restore WinAudioBooster/WinAudioBooster.csproj
+
+      - name: Restore dependencies (test project)
+        run: dotnet restore WinAudioBooster.Tests/WinAudioBooster.Tests.csproj
+        # The test project is added in parallel; steps are skipped until it lands
+        if: ${{ hashFiles('WinAudioBooster.Tests/WinAudioBooster.Tests.csproj') != '' }}
+
+      - name: Build (main project)
+        run: dotnet build WinAudioBooster/WinAudioBooster.csproj --configuration Release --no-restore
+
+      - name: Build (test project)
+        run: dotnet build WinAudioBooster.Tests/WinAudioBooster.Tests.csproj --configuration Release --no-restore
+        if: ${{ hashFiles('WinAudioBooster.Tests/WinAudioBooster.Tests.csproj') != '' }}
+
+      - name: Test (main project)
+        run: dotnet test WinAudioBooster/WinAudioBooster.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Test (test project)
+        run: dotnet test WinAudioBooster.Tests/WinAudioBooster.Tests.csproj --configuration Release --no-build --verbosity normal
+        if: ${{ hashFiles('WinAudioBooster.Tests/WinAudioBooster.Tests.csproj') != '' }}

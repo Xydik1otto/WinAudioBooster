@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UseWPF>true</UseWPF>
+        <RootNamespace>WinAudioBooster</RootNamespace>
+        <AssemblyName>WinAudioBooster</AssemblyName>
+
+        <!-- Статичний аналіз: вбудовані CA-аналізатори .NET SDK на рекомендованому рівні -->
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisLevel>latest-recommended</AnalysisLevel>
+        <!-- Застосовувати правила .editorconfig під час збірки (єдність форматування) -->
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <!-- PublishSingleFile неявно вмикає PublishTrimmed, що несумісне з WPF
+             (NETSDK1168). Явно вимикаємо trimming: single-file самодостатній
+             білд WPF працює і без нього (більший розмір, але коректний). -->
+        <PublishTrimmed>false</PublishTrimmed>
+
+        <!-- Автономний виконний файл (не вимагає встановленого .NET 8 на ПК) -->
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <SelfContained>true</SelfContained>
+        <PublishSingleFile>true</PublishSingleFile>
+        <IncludeNativeLibrariesForSelfContained>true</IncludeNativeLibrariesForSelfContained>
+        <!-- Прибрати satellite resource-збірки фреймворку (локалізація застосунку - власні ResourceDictionary Strings.uk/en.xaml) -->
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="NAudio" Version="2.2.1" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Page Update="MainWindow\MainWindow.xaml">
+        <Generator>MSBuild:Compile</Generator>
+        <XamlRuntime>Wpf</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
+    </ItemGroup>
+
+</Project>

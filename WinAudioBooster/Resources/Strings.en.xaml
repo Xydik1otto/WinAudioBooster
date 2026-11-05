@@ -1,0 +1,106 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <sys:String x:Key="AppTitle">WinAudioBooster</sys:String>
+    <sys:String x:Key="MainWindow_Title">WinAudioBooster – Settings</sys:String>
+    <sys:String x:Key="EnableBooster_Label">Enable Booster</sys:String>
+    <sys:String x:Key="BoosterState_On">ACTIVE</sys:String>
+    <sys:String x:Key="BoosterState_Off">OFF</sys:String>
+    <sys:String x:Key="AutoStart_Label">Start automatically with Windows</sys:String>
+
+    <!-- Routing -->
+    <sys:String x:Key="Routing_Group">Windows Audio Routing</sys:String>
+    <sys:String x:Key="SetCableDefault_Btn">Set CABLE as Default (For Booster)</sys:String>
+    <sys:String x:Key="SetSpeakersDefault_Btn">Restore Speakers (Direct Sound)</sys:String>
+
+    <sys:String x:Key="OutputDevice_Group">Physical Speakers / Headphones</sys:String>
+    <sys:String x:Key="OutputDevice_Label">Output sound to:</sys:String>
+
+    <sys:String x:Key="Presets_Group">Presets</sys:String>
+    <sys:String x:Key="Preset_SaveAs">Save New</sys:String>
+    <sys:String x:Key="Preset_Update">Update</sys:String>
+    <sys:String x:Key="Preset_PromptName">Enter a name for the new preset:</sys:String>
+    <sys:String x:Key="Preset_Delete">Delete</sys:String>
+
+    <sys:String x:Key="Gain_Label">Gain, dB</sys:String>
+    <sys:String x:Key="HighGainWarning_Text">High gain levels may damage speakers/headphones and your hearing.</sys:String>
+    <sys:String x:Key="Language_Label">Language / Мова</sys:String>
+    <sys:String x:Key="Language_Ukrainian">Українська</sys:String>
+    <sys:String x:Key="Language_English">English</sys:String>
+
+    <sys:String x:Key="Compressor_Group">Compressor</sys:String>
+    <sys:String x:Key="Threshold_Label">Threshold, dB</sys:String>
+    <sys:String x:Key="Ratio_Label">Ratio</sys:String>
+
+    <sys:String x:Key="Limiter_Group">Limiter</sys:String>
+    <sys:String x:Key="Ceiling_Label">Ceiling, dB</sys:String>
+
+    <sys:String x:Key="Eq_Group">Equalizer</sys:String>
+    <sys:String x:Key="Eq_Enable">Enable equalizer</sys:String>
+    <sys:String x:Key="Eq_Reset">Reset</sys:String>
+    <sys:String x:Key="Eq_ImportAutoEq">Import AutoEq</sys:String>
+
+    <!-- AutoEq curve import -->
+    <sys:String x:Key="AutoEq_OpenDialog_Title">Import AutoEq Curve</sys:String>
+    <sys:String x:Key="AutoEq_Error_Title">AutoEq Import Error</sys:String>
+    <sys:String x:Key="AutoEq_Error_Message">Failed to import the AutoEq curve.&#10;&#10;{0}</sys:String>
+
+    <sys:String x:Key="VuMeters_Group">Signal Levels (VU)</sys:String>
+    <sys:String x:Key="Vu_Input">Input:</sys:String>
+    <sys:String x:Key="Vu_Output">Output:</sys:String>
+
+    <sys:String x:Key="InstallCable_Btn">Install VB-Cable</sys:String>
+    <sys:String x:Key="CableInstalled_Btn">Driver Installed</sys:String>
+
+    <!-- Hearing protection -->
+    <sys:String x:Key="HearingProtection_Label">Hearing protection (warn above &gt;150% gain)</sys:String>
+    <sys:String x:Key="HearingProtection_Title">Hearing Protection</sys:String>
+    <sys:String x:Key="HearingProtection_Message">Gain above 150% may cause permanent hearing damage.&#10;&#10;"Yes" — continue at this level,&#10;"No" — reduce to 150%.</sys:String>
+
+    <!-- Device profiles -->
+    <sys:String x:Key="DeviceProfiles_Group">Device Profiles</sys:String>
+    <sys:String x:Key="DeviceProfiles_Device">Output device</sys:String>
+    <sys:String x:Key="DeviceProfiles_Preset">Preset</sys:String>
+    <sys:String x:Key="DeviceProfiles_Add">Add Binding</sys:String>
+
+    <!-- Auto theme (follows Windows) -->
+    <sys:String x:Key="Theme_Auto">Auto (Windows)</sys:String>
+
+    <!-- Extra fixed global hotkeys -->
+    <sys:String x:Key="Hotkeys_ExtraInfo">Hotkeys: Ctrl+Alt+1…5 — apply preset 1–5, Ctrl+Alt+D — DSP bypass (booster on/off).</sys:String>
+
+    <!-- Sleep timer -->
+    <sys:String x:Key="SleepTimer_Label">Sleep timer</sys:String>
+    <sys:String x:Key="SleepTimer_Off">Off</sys:String>
+    <sys:String x:Key="SleepTimer_15Min">15 min</sys:String>
+    <sys:String x:Key="SleepTimer_30Min">30 min</sys:String>
+    <sys:String x:Key="SleepTimer_60Min">60 min</sys:String>
+
+    <!-- Quick DSP toggles (Equalizer section) -->
+    <sys:String x:Key="BassBoost_Label">Bass Boost</sys:String>
+    <sys:String x:Key="TrebleBoost_Label">Treble Boost</sys:String>
+    <sys:String x:Key="SubBassFilter_Label">Cut sub-bass (30 Hz)</sys:String>
+
+    <!-- Spatial DSP toggles & balance (Equalizer section) -->
+    <sys:String x:Key="Loudness_Label">Loudness normalization</sys:String>
+    <sys:String x:Key="StereoWidth_Label">Stereo width</sys:String>
+    <sys:String x:Key="Crossfeed_Label">Crossfeed (headphones)</sys:String>
+    <sys:String x:Key="Mono_Label">Mono</sys:String>
+    <sys:String x:Key="Balance_Label">Balance L/R (0 — center)</sys:String>
+
+    <!-- Event log (settings) -->
+    <sys:String x:Key="Logging_Label">Enable event logging</sys:String>
+    <sys:String x:Key="OpenLog_Btn">📄 Open log</sys:String>
+
+    <!-- Scheduled night mode (Quiet Hours) -->
+    <sys:String x:Key="QuietHours_Label">Scheduled night mode (applies "Night Mode" preset)</sys:String>
+    <sys:String x:Key="QuietHours_Start">Start:</sys:String>
+    <sys:String x:Key="QuietHours_End">End:</sys:String>
+
+    <!-- Hotkey OSD feedback (tray balloon) -->
+    <sys:String x:Key="OSD_Preset">Preset: {0}</sys:String>
+    <sys:String x:Key="OSD_BypassOn">Bypass: On</sys:String>
+    <sys:String x:Key="OSD_BypassOff">Bypass: Off</sys:String>
+    <sys:String x:Key="OSD_Volume">Volume: {0:F0}%</sys:String>
+</ResourceDictionary>
